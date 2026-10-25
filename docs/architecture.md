@@ -1,7 +1,7 @@
 # Tidarium 技术框架
 
 > 版本：0.2（2026-10-25）
-> 代码状态：P0 + P1 已完成，构建、安装与模拟器运行验证通过
+> 代码状态：P0 + P1 已完成
 > 讨论来源：[`basic.md`](../basic.md)
 
 ## 1. 项目标识
@@ -20,7 +20,7 @@
 
 命名：日耳曼语 `*tīdiz`（时间，英语 tide 同源）+ 拉丁语 `-ārium`（容器/场所），字面「盛放时间的匣子」。
 
-`com.uni.class` 仅作为工作目录名保留。`class` 是 Java/Kotlin/Dart 保留字，不能出现在包名中，因此不使用。
+包名不使用 `class` 等语言保留字。
 
 ## 2. 产品边界
 
@@ -42,23 +42,20 @@
 
 | 项 | 版本 | 说明 |
 | --- | --- | --- |
-| Flutter | 3.47.7 stable | FVM 缓存于 `C:\ProgramData\runtime\runtimes\flutter\versions\3.47.7` |
+| Flutter | 3.47.7 stable | 项目 pin，见 `.fvmrc` |
 | Dart | 3.13.5 | 随 Flutter 附带 |
-| Gradle | 9.3.1 | 首次构建时下载 |
+| Gradle | 9.3.1 | 由 wrapper 固定 |
 | AGP | 9.1.0 | `android/settings.gradle.kts` |
 | Kotlin | 2.4.0 | 同上 |
 | compileSdk / targetSdk | 36 | 来自 Flutter Gradle 插件 |
 | minSdk | 24 | Android 7.0 |
-| JDK | 21.0.2（target 17） | mise 管理 |
+| JDK | 17+ | 编译目标为 17 |
+| NDK | 28.2.13676358 | 引入原生插件时需要 |
 | Riverpod | 3.4.3 | 状态管理 |
 | Dio | 5.11.1 | HTTP |
 | html | 0.15.7 | DOM 解析 |
 | intl | 0.20.3 | 日期格式化 |
 | flutter_secure_storage | 11.2.0 | Cookie/凭证存储 |
-| Android SDK | `C:\ProgramData\runtime\android-sdk` | platform-tools 37.0.1、platform 36、build-tools 36.0.0 |
-| NDK / CMake | 28.2.13676358 / 3.22.1 | Flutter 3.47.7 默认 NDK；首次构建自动补 CMake |
-| Emulator | 37.2.12.0，`C:\Program Files\Android\emulator` | SDK 内 `emulator` 目录为 junction |
-| AVD | `C:\vhds\avd\tidarium_36` | pixel_10、Android 16 / API 36、4 GB RAM |
 | Drift + SQLite | 规划 P2 | 结构化持久化 |
 | flutter_inappwebview | 规划 P3 | 登录 Cookie 截获 |
 | JSONata / QuickJS | 规划 P4 | 规则层与沙箱 |
@@ -231,7 +228,7 @@ plugin_state(
 
 | 阶段 | 内容 | 验收 |
 | --- | --- | --- |
-| P0 | Android SDK、首次构建 | `flutter doctor -v` 全绿，`flutter build apk --debug` 成功（已完成） |
+| P0 | Android 构建与运行 | `flutter doctor -v`、`flutter build apk --debug` 通过（已完成） |
 | P1 | 工程骨架 | `flutter analyze`、`flutter test` 通过（已完成） |
 | P2 | Drift 持久化 + 缓存优先 UI | 杀进程后数据仍在，冷启动先出缓存 |
 | P3 | 学习通 Dart 插件 | 登录、拉取、入库、列表展示真实作业 |
@@ -244,7 +241,7 @@ plugin_state(
 | 编号 | 决策 | 理由 |
 | --- | --- | --- |
 | D1 | 用 Flutter，不用原生 Android | 讨论稿的 `StandardEvent` 与插件包均为 Dart/Flutter 生态 |
-| D2 | 命名 Tidarium，包名 `io.github.stellinora.tidarium` | `com.uni.class` 含保留字；GitHub 命名空间唯一 |
+| D2 | 命名 Tidarium，包名 `io.github.stellinora.tidarium` | 包名避免语言保留字；命名空间唯一 |
 | D3 | 先定义 `EventStore` 接口，P2 再接 Drift | 避免骨架阶段引入代码生成 |
 | D4 | Riverpod + MVVM | 与 Flutter 生态一致，便于插件状态隔离 |
 | D5 | 规则层 JSONata → QuickJS → Wasm | 安全性与灵活性分层，不引入 Lua |
@@ -253,19 +250,10 @@ plugin_state(
 
 ## 13. 验收
 
-```powershell
-fvm flutter analyze
-fvm flutter test
-fvm flutter build apk --debug
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug
 ```
 
-最近一次验证（2026-10-25）：
-
-- `flutter doctor -v`：Android toolchain 全绿，WHPX 可用
-- `flutter analyze`：No issues found
-- `flutter test`：5/5 通过
-- `flutter build apk --debug`：`build\app\outputs\flutter-apk\app-debug.apk`，153.9 MB
-- 模拟器：`emulator-5554` 在线，`sys.boot_completed=1`
-- 安装与运行：`adb install` 成功，MainActivity `Fully drawn +5s411ms`，无崩溃
-
-具体路径、命令与已知问题见 [`preparation.md`](preparation.md)。
+以上命令应在标准 Android 开发环境中通过。环境搭建见 [`development.md`](development.md)。
