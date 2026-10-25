@@ -19,6 +19,8 @@
 - `flutter test`：5 个测试全部通过
 - `flutter build apk --debug`：成功，产物 153.9 MB
 - 安装并启动到模拟器：`Success`，MainActivity 获得焦点，`Fully drawn +5s411ms`，无崩溃
+- Git 仓库已初始化并推送到 <https://github.com/Stellinora/tidarium>（`main`，提交 `f1aabde`）
+- LICENSE：GPL-3.0
 
 ## 1. 最终目录布局
 
@@ -232,9 +234,10 @@ ActivityTaskManager: Fully drawn io.github.stellinora.tidarium.debug/...MainActi
 
 ### 发布准备
 
-- [ ] `git init` 并确认 `.gitignore`（`.dart_tool/`、`build/`、`.fvm/`、`android/local.properties`、`.idea/`）
-- [ ] 创建 GitHub 仓库 `Stellinora/tidarium`
-- [ ] 选择 LICENSE
+- [x] `git init` 并确认 `.gitignore`（`.dart_tool/`、`build/`、`.fvm/`、`android/local.properties`、`.idea/`）
+- [x] 创建 GitHub 仓库 `Stellinora/tidarium`（Public）
+- [x] 选择 LICENSE：GPL-3.0
+- [ ] 在 GitHub 网页补仓库描述与 topics（当前 token 无 Administration 权限）
 - [ ] 补 README 截图、规则开发文档
 - [ ] 分发 APK 前配置 release keystore（当前 release 仍用 debug 签名）
 - [ ] 可选 GitHub Actions：Flutter 3.47.7 + `flutter build apk --release`

@@ -6,6 +6,8 @@ Tidarium 由日耳曼语 `*tīdiz`（时间）与拉丁语 `-ārium`（容器/�
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
+仓库：<https://github.com/Stellinora/tidarium>
+
 ## 状态
 
 - [x] P0 Android SDK / emulator / AVD 安装，首次构建成功

@@ -11,6 +11,7 @@
 | 产品名 | Tidarium / 时匣 |
 | 定位 | 一体化日程助手（课程、作业、线上课聚合） |
 | 仓库 | `Stellinora/tidarium` |
+| License | GPL-3.0 |
 | Dart 包名 | `tidarium` |
 | Android applicationId | `io.github.stellinora.tidarium` |
 | Debug applicationId | `io.github.stellinora.tidarium.debug` |
