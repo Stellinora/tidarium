@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../home/home_providers.dart';
+import '../timetable/timetable_settings_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -14,6 +15,18 @@ class SettingsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
         children: [
+          ListTile(
+            leading: const Icon(Icons.calendar_view_week_outlined),
+            title: const Text('课程表'),
+            subtitle: const Text('学期、节次与显示设置'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const TimetableSettingsPage(),
+              ),
+            ),
+          ),
+          const Divider(),
           const ListTile(title: Text('插件'), subtitle: Text('静态注册，按需启用')),
           for (final plugin in plugins)
             ListTile(

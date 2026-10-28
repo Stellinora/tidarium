@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'features/home/home_page.dart';
+import 'features/shell/app_shell.dart';
 import 'ui/theme.dart';
 
 class TidariumApp extends StatelessWidget {
@@ -13,7 +14,14 @@ class TidariumApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTidariumTheme(Brightness.light),
       darkTheme: buildTidariumTheme(Brightness.dark),
-      home: const HomePage(),
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: const AppShell(),
     );
   }
 }
