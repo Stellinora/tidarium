@@ -1,0 +1,181 @@
+# Required repository secrets for publishing any release:
+#   ANDROID_KEYSTORE_BASE64      base64 -w0 release.jks (Windows: [Convert]::ToBase64String(...))
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build signed APK and publish
+    runs-on: ubuntu-latest
+
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.7"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "::error::RELEASE_TAG is empty. Use a tag like v0.1.0."
+            exit 1
+          fi
+          TAG="$RELEASE_TAG"
+          if [[ "$TAG" != v* ]]; then
+            TAG="v$TAG"
+          fi
+          VERSION_NAME="${TAG#v}"
+          PUBSPEC_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          if [ -n "$PUBSPEC_VERSION" ] && [ "$PUBSPEC_VERSION" != "$VERSION_NAME" ]; then
+            echo "::warning::pubspec version is $PUBSPEC_VERSION but the tag is $TAG; the tag value is used."
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG (versionName=$VERSION_NAME, versionCode=$GITHUB_RUN_NUMBER)"
+
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing repository secret $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Add ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD before publishing a release."
+            exit 1
+          fi
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release.jks
+          cat > android/key.properties <<EOF
+          storeFile=release.jks
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - name: Build signed APK
+        run: |
+          flutter build apk --release \
+            --target-platform android-arm,android-arm64 \
+            --build-name="${{ steps.version.outputs.name }}" \
+            --build-number="${{ github.run_number }}"
+
+      - name: Prepare release files
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Tidarium-${{ steps.version.outputs.tag }}.apk"
+          ls -lh dist
+
+      - name: Verify APK signature
+        env:
+          EXPECTED_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          APK_PATH: dist/Tidarium-${{ steps.version.outputs.tag }}.apk
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPECTED_SHA256}" ]; then
+            echo "::error::Repository variable ANDROID_CERT_SHA256 is not set."
+            exit 1
+          fi
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [ -z "$SDK_ROOT" ]; then
+            echo "::error::ANDROID_HOME or ANDROID_SDK_ROOT is not set."
+            exit 1
+          fi
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner not found under $SDK_ROOT/build-tools."
+            exit 1
+          fi
+
+          "$APKSIGNER" verify --print-certs "$APK_PATH" | tee dist/SIGNING_CERT.txt
+          ACTUAL_SHA256="$(grep -i 'SHA-256 digest' dist/SIGNING_CERT.txt | head -n 1 | awk '{print $NF}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED_NORMALIZED="$(printf '%s' "$EXPECTED_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          if [ -z "$ACTUAL_SHA256" ]; then
+            echo "::error::Could not read the APK certificate SHA-256 digest."
+            exit 1
+          fi
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_NORMALIZED" ]; then
+            echo "::error::APK signature mismatch: expected $EXPECTED_NORMALIZED, got $ACTUAL_SHA256."
+            exit 1
+          fi
+          echo "APK signature verified: $ACTUAL_SHA256"
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Tidarium ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS.txt
+            dist/SIGNING_CERT.txt
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/release.jks
