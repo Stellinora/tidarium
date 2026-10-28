@@ -192,6 +192,49 @@ ImportedCourses parseImportedCourses(
   return ImportedCourses(courses: courses, warnings: warnings);
 }
 
+int maxSectionInImportedCourses(String raw) {
+  final decoded = jsonDecode(raw);
+  if (decoded is! List) return 0;
+
+  var maxSection = 0;
+  for (final item in decoded) {
+    if (item is! Map) continue;
+    if (item['isCustomTime'] == true) continue;
+    final end = _int(item['endSection']);
+    if (end != null && end > maxSection) maxSection = end;
+  }
+  return maxSection;
+}
+
+List<TimeSlot> extendTimeSlotsForSections({
+  required List<TimeSlot> slots,
+  required int requiredSections,
+  required TimetableConfig config,
+}) {
+  if (requiredSections <= slots.length) return slots;
+
+  final result = [...slots];
+  var nextNumber = result.isEmpty ? 1 : result.last.number + 1;
+  var nextStart = result.isEmpty
+      ? 8 * 60
+      : result.last.endMinutes + config.defaultBreakMinutes;
+
+  while (result.length < requiredSections) {
+    if (nextStart >= 24 * 60 - 1) break;
+    final start = nextStart;
+    final end = (start + config.defaultClassMinutes)
+        .clamp(start + 1, 24 * 60)
+        .toInt();
+    result.add(
+      TimeSlot(number: nextNumber, startMinutes: start, endMinutes: end),
+    );
+    nextNumber += 1;
+    nextStart = end + config.defaultBreakMinutes;
+  }
+
+  return result;
+}
+
 TimeSlot? _findStartSlot(List<TimeSlot> slots, int minutes) {
   for (final slot in slots) {
     if (slot.startMinutes == minutes) return slot;

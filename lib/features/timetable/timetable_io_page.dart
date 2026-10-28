@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'import/school_selection_page.dart';
+import 'import/wakeup_school_selection_page.dart';
 import 'io/ics_exporter.dart';
 import 'io/ics_importer.dart';
 import 'io/timetable_file_service.dart';
@@ -32,6 +33,20 @@ class TimetableIoPage extends ConsumerWidget {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => const SchoolSelectionPage(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.menu_book_outlined),
+              title: const Text('WakeUp 学校库'),
+              subtitle: const Text('1,941 所学校 · 支持正方、青果、URP、超星'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WakeUpSchoolSelectionPage(),
                 ),
               ),
             ),

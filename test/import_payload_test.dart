@@ -107,6 +107,43 @@ void main() {
       expect(imported.warnings.single, contains('无效课程'));
     });
 
+    test('detects required sections and extends time slots', () {
+      final raw = jsonEncode([
+        {
+          'name': 'Course A',
+          'day': 1,
+          'startSection': 14,
+          'endSection': 16,
+          'weeks': [1],
+        },
+        {
+          'name': 'Course B',
+          'day': 1,
+          'isCustomTime': true,
+          'customStartTime': '08:00',
+          'customEndTime': '08:45',
+        },
+      ]);
+
+      expect(maxSectionInImportedCourses(raw), 16);
+
+      final extended = extendTimeSlotsForSections(
+        slots: defaultTimeSlots,
+        requiredSections: 15,
+        config: const TimetableConfig(
+          defaultClassMinutes: 45,
+          defaultBreakMinutes: 10,
+        ),
+      );
+
+      expect(extended, hasLength(15));
+      expect(extended[13].number, 14);
+      expect(extended[13].startMinutes, 22 * 60 + 5);
+      expect(extended[13].endMinutes, 22 * 60 + 50);
+      expect(extended[14].number, 15);
+      expect(extended[14].startMinutes, 23 * 60);
+    });
+
     test('assigns the same color to the same course name', () {
       final imported = parseImportedCourses(
         jsonEncode([

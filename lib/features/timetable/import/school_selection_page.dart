@@ -158,12 +158,57 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
       );
     }
 
-    return ListView.separated(
+    if (_query.trim().isNotEmpty) {
+      return _buildEntries(theme, schools);
+    }
+
+    final generic = _schools.where(_isGenericSchool).toList()
+      ..sort(
+        (a, b) => _genericSchoolIds
+            .indexOf(a.id)
+            .compareTo(_genericSchoolIds.indexOf(b.id)),
+      );
+    final tools = _schools
+        .where((school) => school.id == _toolsSchoolId)
+        .toList(growable: false);
+    final others = _schools
+        .where(
+          (school) => !_isGenericSchool(school) && school.id != _toolsSchoolId,
+        )
+        .toList(growable: false);
+
+    final entries = <Object>[
+      if (generic.isNotEmpty) '通用教务系统',
+      ...generic,
+      if (tools.isNotEmpty) '通用工具',
+      ...tools,
+      if (others.isNotEmpty) '全部学校',
+      ...others,
+    ];
+
+    return _buildEntries(theme, entries);
+  }
+
+  Widget _buildEntries(ThemeData theme, List<Object> entries) {
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-      itemCount: schools.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemCount: entries.length,
       itemBuilder: (context, index) {
-        final school = schools[index];
+        final entry = entries[index];
+        if (entry is String) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
+            child: Text(
+              entry,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          );
+        }
+
+        final school = entry as SchoolEntry;
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: CircleAvatar(
@@ -184,5 +229,18 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
         );
       },
     );
+  }
+
+  static const _genericSchoolIds = [
+    'zhengfang_jiaowu',
+    'chaoxing_jiaowu',
+    'qingguo_jiaowu',
+    'urp_jiaowu',
+  ];
+
+  static const _toolsSchoolId = 'GLOBAL_TOOLS';
+
+  bool _isGenericSchool(SchoolEntry school) {
+    return _genericSchoolIds.contains(school.id);
   }
 }

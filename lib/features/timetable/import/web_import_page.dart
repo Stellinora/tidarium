@@ -528,12 +528,30 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
 
     try {
       final data = ref.read(timetableProvider);
-      final slots = _slotsRaw == null
+      var slots = _slotsRaw == null
           ? data.timeSlots
           : parseImportedTimeSlots(_slotsRaw!);
       var config = _configRaw == null
           ? data.config
           : parseImportedConfig(_configRaw!, data.config);
+
+      if (_slotsRaw == null) {
+        final requiredSections = maxSectionInImportedCourses(_coursesRaw!);
+        if (requiredSections > slots.length) {
+          final extended = extendTimeSlotsForSections(
+            slots: slots,
+            requiredSections: requiredSections,
+            config: config,
+          );
+          if (extended.length > slots.length) {
+            _warnings.add(
+              '已自动补充 ${extended.length - slots.length} 个节次，'
+              '请在课程表设置中确认时间',
+            );
+            slots = extended;
+          }
+        }
+      }
 
       final imported = parseImportedCourses(
         _coursesRaw!,
