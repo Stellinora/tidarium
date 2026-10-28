@@ -7,6 +7,8 @@ class TimetableConfig {
     this.totalWeeks = 20,
     this.showWeekends = false,
     this.firstWeekday = DateTime.monday,
+    this.defaultClassMinutes = 45,
+    this.defaultBreakMinutes = 10,
   });
 
   factory TimetableConfig.fromJson(Map<String, Object?> json) {
@@ -16,6 +18,10 @@ class TimetableConfig {
       totalWeeks: ((json['totalWeeks'] as num?)?.toInt() ?? 20).clamp(1, 52),
       showWeekends: json['showWeekends'] as bool? ?? false,
       firstWeekday: ((json['firstWeekday'] as num?)?.toInt() ?? 1).clamp(1, 7),
+      defaultClassMinutes:
+          ((json['defaultClassMinutes'] as num?)?.toInt() ?? 45).clamp(1, 600),
+      defaultBreakMinutes:
+          ((json['defaultBreakMinutes'] as num?)?.toInt() ?? 10).clamp(0, 600),
     );
   }
 
@@ -24,6 +30,8 @@ class TimetableConfig {
   final int totalWeeks;
   final bool showWeekends;
   final int firstWeekday;
+  final int defaultClassMinutes;
+  final int defaultBreakMinutes;
 
   TimetableConfig copyWith({
     String? name,
@@ -31,6 +39,8 @@ class TimetableConfig {
     int? totalWeeks,
     bool? showWeekends,
     int? firstWeekday,
+    int? defaultClassMinutes,
+    int? defaultBreakMinutes,
   }) {
     return TimetableConfig(
       name: name ?? this.name,
@@ -38,6 +48,8 @@ class TimetableConfig {
       totalWeeks: totalWeeks ?? this.totalWeeks,
       showWeekends: showWeekends ?? this.showWeekends,
       firstWeekday: firstWeekday ?? this.firstWeekday,
+      defaultClassMinutes: defaultClassMinutes ?? this.defaultClassMinutes,
+      defaultBreakMinutes: defaultBreakMinutes ?? this.defaultBreakMinutes,
     );
   }
 
@@ -50,6 +62,8 @@ class TimetableConfig {
       'totalWeeks': totalWeeks,
       'showWeekends': showWeekends,
       'firstWeekday': firstWeekday,
+      'defaultClassMinutes': defaultClassMinutes,
+      'defaultBreakMinutes': defaultBreakMinutes,
     };
   }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'model/time_slot.dart';
 import 'model/timetable_config.dart';
-import 'model/timetable_data.dart';
+import 'time_slot_settings_page.dart';
+import 'timetable_io_page.dart';
 import 'timetable_providers.dart';
 import 'timetable_time.dart';
 
@@ -79,28 +79,27 @@ class TimetableSettingsPage extends ConsumerWidget {
           ),
           const Divider(),
           _SectionHeader(title: '节次时间', theme: theme),
-          for (final slot in data.timeSlots)
-            ListTile(
-              dense: true,
-              leading: CircleAvatar(
-                radius: 15,
-                child: Text(
-                  '${slot.number}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              title: Text('第 ${slot.number} 节'),
-              subtitle: Text(
-                '${formatMinuteOfDay(slot.startMinutes)} - '
-                '${formatMinuteOfDay(slot.endMinutes)}',
-              ),
-              trailing: const Icon(Icons.edit_outlined, size: 18),
-              onTap: () => _editSlot(context, ref, slot),
-            ),
           ListTile(
-            leading: const Icon(Icons.restart_alt),
-            title: const Text('恢复默认节次时间'),
-            onTap: () => _restoreSlots(context, ref),
+            leading: const Icon(Icons.schedule_outlined),
+            title: const Text('节次时间与默认时长'),
+            subtitle: Text('共 ${data.timeSlots.length} 节 · 可新增、删除、调整时间'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const TimeSlotSettingsPage(),
+              ),
+            ),
+          ),
+          const Divider(),
+          _SectionHeader(title: '导入与导出', theme: theme),
+          ListTile(
+            leading: const Icon(Icons.swap_vert_circle_outlined),
+            title: const Text('课表导入与导出'),
+            subtitle: const Text('教务系统、ICS 导入/导出'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const TimetableIoPage()),
+            ),
           ),
           const Divider(),
           _SectionHeader(title: '维护', theme: theme),
@@ -131,7 +130,7 @@ class TimetableSettingsPage extends ConsumerWidget {
 
   List<DropdownMenuItem<int>> _weekOptions(int current) {
     final weeks = {
-      for (var week = 1; week <= 30; week++) week,
+      for (var week = 1; week <= 52; week++) week,
       current,
     }.toList()..sort();
     return [
@@ -194,70 +193,6 @@ class TimetableSettingsPage extends ConsumerWidget {
     await ref
         .read(timetableProvider.notifier)
         .updateConfig(config.copyWith(semesterStart: dateOnly(picked)));
-  }
-
-  Future<void> _editSlot(
-    BuildContext context,
-    WidgetRef ref,
-    TimeSlot slot,
-  ) async {
-    final start = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: slot.startMinutes ~/ 60,
-        minute: slot.startMinutes % 60,
-      ),
-      helpText: '第 ${slot.number} 节开始时间',
-    );
-    if (start == null || !context.mounted) return;
-
-    final end = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: slot.endMinutes ~/ 60,
-        minute: slot.endMinutes % 60,
-      ),
-      helpText: '第 ${slot.number} 节结束时间',
-    );
-    if (end == null || !context.mounted) return;
-
-    final startMinutes = start.hour * 60 + start.minute;
-    final endMinutes = end.hour * 60 + end.minute;
-    if (endMinutes <= startMinutes) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('结束时间必须晚于开始时间')));
-      return;
-    }
-
-    await ref
-        .read(timetableProvider.notifier)
-        .updateTimeSlot(
-          slot.copyWith(startMinutes: startMinutes, endMinutes: endMinutes),
-        );
-  }
-
-  Future<void> _restoreSlots(BuildContext context, WidgetRef ref) async {
-    final data = ref.read(timetableProvider);
-    final restored = [
-      for (final slot in defaultTimeSlots)
-        TimeSlot(
-          number: slot.number,
-          startMinutes: slot.startMinutes,
-          endMinutes: slot.endMinutes,
-          alias: _aliasFor(data.timeSlots, slot.number),
-        ),
-    ];
-    await ref.read(timetableProvider.notifier).replaceTimeSlots(restored);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('已恢复默认节次时间')));
-  }
-
-  String? _aliasFor(List<TimeSlot> slots, int number) {
-    for (final slot in slots) {
-      if (slot.number == number) return slot.alias;
-    }
-    return null;
   }
 
   Future<void> _clearCourses(BuildContext context, WidgetRef ref) async {

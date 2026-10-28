@@ -92,11 +92,12 @@ List<int> orderedWeekdays({
   required int firstWeekday,
   required bool showWeekends,
 }) {
-  final count = showWeekends ? 7 : 5;
-  return [
-    for (var index = 0; index < count; index++)
+  final days = [
+    for (var index = 0; index < 7; index++)
       weekdayAtDisplayIndex(index, firstWeekday),
   ];
+  if (showWeekends) return days;
+  return days.where((day) => day <= 5).toList(growable: false);
 }
 
 String formatShortDate(DateTime date) => '${date.month}/${date.day}';

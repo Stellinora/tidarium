@@ -59,6 +59,7 @@ class TimetableGrid extends StatelessWidget {
             ),
             Expanded(
               child: SingleChildScrollView(
+                key: PageStorageKey<String>('timetable-scroll-$weekNumber'),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -101,10 +102,7 @@ class TimetableGrid extends StatelessWidget {
                                   rowCount: timeSlots.length,
                                   todayIndex: todayWeekday == null
                                       ? null
-                                      : displayIndexOfWeekday(
-                                          todayWeekday!,
-                                          config.firstWeekday,
-                                        ),
+                                      : days.indexOf(todayWeekday!),
                                   currentSectionIndex: currentSection == null
                                       ? null
                                       : timeSlots.indexWhere(
@@ -115,7 +113,6 @@ class TimetableGrid extends StatelessWidget {
                                       .withValues(alpha: 0.55),
                                   highlightColor: theme.colorScheme.primary
                                       .withValues(alpha: 0.05),
-                                  showWeekends: config.showWeekends,
                                 ),
                               ),
                             ),
@@ -323,7 +320,6 @@ class _TimetableGridPainter extends CustomPainter {
     required this.currentSectionIndex,
     required this.lineColor,
     required this.highlightColor,
-    required this.showWeekends,
   });
 
   final int dayCount;
@@ -332,16 +328,14 @@ class _TimetableGridPainter extends CustomPainter {
   final int? currentSectionIndex;
   final Color lineColor;
   final Color highlightColor;
-  final bool showWeekends;
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (rowCount <= 0 || dayCount <= 0 || size.isEmpty) return;
     final cellWidth = size.width / dayCount;
     final rowHeight = size.height / rowCount;
 
-    if (todayIndex != null &&
-        todayIndex! >= 0 &&
-        todayIndex! < (showWeekends ? 7 : 5)) {
+    if (todayIndex != null && todayIndex! >= 0 && todayIndex! < dayCount) {
       canvas.drawRect(
         Rect.fromLTWH(todayIndex! * cellWidth, 0, cellWidth, size.height),
         Paint()..color = highlightColor,
@@ -384,7 +378,6 @@ class _TimetableGridPainter extends CustomPainter {
         oldDelegate.todayIndex != todayIndex ||
         oldDelegate.currentSectionIndex != currentSectionIndex ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.highlightColor != highlightColor ||
-        oldDelegate.showWeekends != showWeekends;
+        oldDelegate.highlightColor != highlightColor;
   }
 }

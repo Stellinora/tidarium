@@ -17,9 +17,14 @@ dependencies:
   html: ^0.15.7
   intl: ^0.20.3
   path_provider: ^2.1.6
+  share_plus: ^13.3.1
+  webview_flutter: ^4.14.1
+  yaml: ^3.1.4
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 

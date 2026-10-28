@@ -67,6 +67,20 @@ class TimetableController extends Notifier<TimetableData> {
     return _commit(state.copyWith(timeSlots: List.unmodifiable(slots)));
   }
 
+  Future<void> replaceSchedule({
+    TimetableConfig? config,
+    List<TimeSlot>? timeSlots,
+    List<Course>? courses,
+  }) {
+    return _commit(
+      state.copyWith(
+        config: config,
+        timeSlots: timeSlots == null ? null : List.unmodifiable(timeSlots),
+        courses: courses == null ? null : List.unmodifiable(courses),
+      ),
+    );
+  }
+
   Future<void> _commit(TimetableData data) {
     state = data;
     final store = ref.read(timetableStoreProvider);

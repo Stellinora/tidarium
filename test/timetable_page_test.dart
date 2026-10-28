@@ -145,6 +145,32 @@ void main() {
     expect(find.text('线性代数'), findsOneWidget);
   });
 
+  testWidgets('swipes between weeks with page animation', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        TimetableData(
+          config: TimetableConfig(
+            semesterStart: DateTime.now(),
+            totalWeeks: 20,
+          ),
+          timeSlots: defaultTimeSlots,
+          courses: const [],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('第 1 周'), findsOneWidget);
+
+    await tester.fling(find.byType(PageView), const Offset(-420, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('第 2 周'), findsOneWidget);
+
+    await tester.fling(find.byType(PageView), const Offset(420, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('第 1 周'), findsOneWidget);
+  });
+
   testWidgets('shows an empty hint on a fresh timetable', (tester) async {
     await tester.pumpWidget(
       _app(

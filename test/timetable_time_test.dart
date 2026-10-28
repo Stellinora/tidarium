@@ -64,11 +64,11 @@ void main() {
         5,
       ]);
       expect(orderedWeekdays(firstWeekday: 7, showWeekends: false), [
-        7,
         1,
         2,
         3,
         4,
+        5,
       ]);
       expect(orderedWeekdays(firstWeekday: 1, showWeekends: true), [
         1,

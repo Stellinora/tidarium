@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'course_merge.dart';
 import 'model/course.dart';
+import 'timetable_io_page.dart';
 import 'timetable_providers.dart';
 import 'timetable_settings_page.dart';
 import 'timetable_time.dart';
@@ -11,11 +12,52 @@ import 'widgets/course_editor_sheet.dart';
 import 'widgets/timetable_grid.dart';
 import 'widgets/week_selector_sheet.dart';
 
-class TimetablePage extends ConsumerWidget {
+class TimetablePage extends ConsumerStatefulWidget {
   const TimetablePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TimetablePage> createState() => _TimetablePageState();
+}
+
+class _TimetablePageState extends ConsumerState<TimetablePage> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = ref.read(timetableProvider);
+    final totalWeeks = data.config.totalWeeks.clamp(1, 52);
+    final currentWeek = weekNumberFor(
+      DateTime.now(),
+      data.config.semesterStart,
+      firstWeekday: data.config.firstWeekday,
+    );
+    final initialWeek = (ref.read(selectedWeekProvider) ?? currentWeek ?? 1)
+        .clamp(1, totalWeeks)
+        .toInt();
+    _pageController = PageController(initialPage: initialWeek - 1);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _animateToWeek(int week, int totalWeeks) {
+    if (!_pageController.hasClients) return;
+    final target = week.clamp(1, totalWeeks).toInt() - 1;
+    final current = _pageController.page?.round() ?? target;
+    if (current == target) return;
+    _pageController.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(timetableProvider);
     final selectedWeek = ref.watch(selectedWeekProvider);
     final config = data.config;
@@ -37,11 +79,34 @@ class TimetablePage extends ConsumerWidget {
         ? DateTime.monday
         : activeWeekday;
 
-    final blocks = mergeCoursesForWeek(
-      data.courses,
-      week,
-      maxSection: data.timeSlots.length,
-    );
+    ref.listen<int?>(selectedWeekProvider, (previous, next) {
+      _animateToWeek(next ?? currentWeek ?? 1, totalWeeks);
+    });
+
+    ref.listen(timetableProvider, (previous, next) {
+      if (!_pageController.hasClients) return;
+      final nextTotalWeeks = next.config.totalWeeks.clamp(1, 52);
+      final currentPage = _pageController.page ?? 0;
+      if (currentPage >= nextTotalWeeks) {
+        _pageController.jumpToPage(nextTotalWeeks - 1);
+        ref.read(selectedWeekProvider.notifier).select(nextTotalWeeks);
+        return;
+      }
+
+      if (ref.read(selectedWeekProvider) == null) {
+        final nextCurrentWeek = weekNumberFor(
+          DateTime.now(),
+          next.config.semesterStart,
+          firstWeekday: next.config.firstWeekday,
+        );
+        final targetWeek = (nextCurrentWeek ?? 1)
+            .clamp(1, nextTotalWeeks)
+            .toInt();
+        if (currentPage.round() != targetWeek - 1) {
+          _animateToWeek(targetWeek, nextTotalWeeks);
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -120,6 +185,14 @@ class TimetablePage extends ConsumerWidget {
                 ),
               ),
               const PopupMenuItem(
+                value: _MenuAction.io,
+                child: ListTile(
+                  leading: Icon(Icons.swap_vert_circle_outlined),
+                  title: Text('导入与导出'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
                 value: _MenuAction.settings,
                 child: ListTile(
                   leading: Icon(Icons.tune),
@@ -165,27 +238,45 @@ class TimetablePage extends ConsumerWidget {
                 onAction: () => _openSettings(context),
               ),
             Expanded(
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  final velocity = details.primaryVelocity ?? 0;
-                  if (velocity.abs() < 180) return;
-                  final target = velocity < 0 ? week + 1 : week - 1;
-                  if (target < 1 || target > totalWeeks) return;
-                  ref.read(selectedWeekProvider.notifier).select(target);
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: totalWeeks,
+                onPageChanged: (index) {
+                  final target = index + 1;
+                  final selected = ref.read(selectedWeekProvider);
+                  if (selected == null &&
+                      currentWeek != null &&
+                      target == currentWeek) {
+                    return;
+                  }
+                  if (selected != target) {
+                    ref.read(selectedWeekProvider.notifier).select(target);
+                  }
                 },
-                child: TimetableGrid(
-                  config: config,
-                  timeSlots: data.timeSlots,
-                  blocks: blocks,
-                  weekNumber: week,
-                  todayWeekday: todayWeekday,
-                  currentSection: isCurrentWeek
-                      ? currentSectionNumber(data.timeSlots, now)
-                      : null,
-                  onCourseTap: (course) => _openCourse(context, ref, course),
-                  onCellTap: (day, section) =>
-                      _addCourse(context, ref, day: day, section: section),
-                ),
+                itemBuilder: (context, index) {
+                  final pageWeek = index + 1;
+                  final isPageCurrent =
+                      currentWeek != null && pageWeek == currentWeek;
+
+                  return TimetableGrid(
+                    key: ValueKey('timetable-week-$pageWeek'),
+                    config: config,
+                    timeSlots: data.timeSlots,
+                    blocks: mergeCoursesForWeek(
+                      data.courses,
+                      pageWeek,
+                      maxSection: data.timeSlots.length,
+                    ),
+                    weekNumber: pageWeek,
+                    todayWeekday: isPageCurrent ? now.weekday : null,
+                    currentSection: isPageCurrent
+                        ? currentSectionNumber(data.timeSlots, now)
+                        : null,
+                    onCourseTap: (course) => _openCourse(context, ref, course),
+                    onCellTap: (day, section) =>
+                        _addCourse(context, ref, day: day, section: section),
+                  );
+                },
               ),
             ),
           ],
@@ -236,6 +327,8 @@ class TimetablePage extends ConsumerWidget {
         await ref
             .read(timetableProvider.notifier)
             .updateConfig(config.copyWith(showWeekends: !config.showWeekends));
+      case _MenuAction.io:
+        await _openIo(context);
       case _MenuAction.settings:
         await _openSettings(context);
       case _MenuAction.clearCourses:
@@ -247,6 +340,11 @@ class TimetablePage extends ConsumerWidget {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const TimetableSettingsPage()),
     );
+  }
+
+  Future<void> _openIo(BuildContext context) async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const TimetableIoPage()));
   }
 
   Future<void> _addCourse(
@@ -356,7 +454,7 @@ class TimetablePage extends ConsumerWidget {
   }
 }
 
-enum _MenuAction { addCourse, toggleWeekends, settings, clearCourses }
+enum _MenuAction { addCourse, toggleWeekends, io, settings, clearCourses }
 
 class _HintBar extends StatelessWidget {
   const _HintBar({
