@@ -17,8 +17,8 @@ class SettingsPage extends ConsumerWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.calendar_view_week_outlined),
-            title: const Text('课程表'),
-            subtitle: const Text('学期、节次与显示设置'),
+            title: const Text('课表'),
+            subtitle: const Text('学期、作息时间、多课表与显示设置'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(

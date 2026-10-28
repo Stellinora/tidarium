@@ -27,7 +27,7 @@ class _AppShellState extends State<AppShell> {
           NavigationDestination(
             icon: Icon(Icons.calendar_view_week_outlined),
             selectedIcon: Icon(Icons.calendar_view_week),
-            label: '课程表',
+            label: '课表',
           ),
           NavigationDestination(
             icon: Icon(Icons.event_note_outlined),

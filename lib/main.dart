@@ -9,13 +9,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final store = JsonFileTimetableStore();
-  final saved = await store.load();
+  final saved = await store.loadLibrary();
 
   runApp(
     ProviderScope(
       overrides: [
         timetableStoreProvider.overrideWithValue(store),
-        if (saved != null) initialTimetableProvider.overrideWithValue(saved),
+        if (saved != null)
+          initialTimetableLibraryProvider.overrideWithValue(saved),
       ],
       child: const TidariumApp(),
     ),

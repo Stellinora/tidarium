@@ -25,36 +25,54 @@ class TimetableIoPage extends ConsumerWidget {
         children: [
           _SectionHeader(title: '教务系统', theme: theme),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.school_outlined),
-              title: const Text('教务系统导入'),
-              subtitle: const Text('从学校教务系统抓取课程表（拾光适配器）'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SchoolSelectionPage(),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.school_outlined),
+                  title: const Text('拾光学校库'),
+                  subtitle: const Text('按学校选择拾光适配器'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SchoolSelectionPage(
+                        mode: SchoolLibraryMode.shiguang,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.menu_book_outlined),
-              title: const Text('WakeUp 学校库'),
-              subtitle: const Text('1,941 所学校 · 支持正方、青果、URP、超星'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const WakeUpSchoolSelectionPage(),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.account_balance_outlined),
+                  title: const Text('通用教务'),
+                  subtitle: const Text('正方、青果、URP、超星'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SchoolSelectionPage(
+                        mode: SchoolLibraryMode.generic,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.menu_book_outlined),
+                  title: const Text('WakeUp 学校库'),
+                  subtitle: const Text('1,941 所学校 · 通用家族自动映射'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const WakeUpSchoolSelectionPage(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
             child: Text(
-              'WakeUp / 星链分享码适配器在「通用工具与服务」中。',
+              'WakeUp / 星链分享码适配器在「拾光学校库」的通用工具中。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -76,7 +94,7 @@ class TimetableIoPage extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.file_open_outlined),
                   title: const Text('导入 ICS'),
-                  subtitle: const Text('从 ICS 日历恢复课程表'),
+                  subtitle: const Text('从 ICS 日历恢复课表'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _importIcs(context, ref),
                 ),
@@ -86,7 +104,7 @@ class TimetableIoPage extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             '教务系统适配器在 WebView 中运行，只能通过桥接保存课表数据，'
-            '不会读取本地文件。导入会覆盖当前课程表，请先备份。',
+            '不会读取本地文件。导入会覆盖当前课表，请先备份。',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -103,7 +121,7 @@ class TimetableIoPage extends ConsumerWidget {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('无法导出'),
-          content: const Text('请先在课程表设置中填写学期开始日期。'),
+          content: const Text('请先在课表设置中填写学期开始日期。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -253,7 +271,7 @@ class TimetableIoPage extends ConsumerWidget {
     if (preview.courses.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('没有可导入的课程，请检查节次时间是否匹配')));
+          .showSnackBar(const SnackBar(content: Text('没有可导入的课程，请检查作息时间是否匹配')));
       return;
     }
 
@@ -268,7 +286,7 @@ class TimetableIoPage extends ConsumerWidget {
             children: [
               Text(
                 '识别到 ${preview.courses.length} 门课程，'
-                '${preview.matchedEventCount} 个事件匹配现有节次。',
+                '${preview.matchedEventCount} 个事件匹配现有时间段。',
               ),
               const SizedBox(height: 8),
               Text(
@@ -288,7 +306,7 @@ class TimetableIoPage extends ConsumerWidget {
                   Text('• $skipped', style: const TextStyle(fontSize: 12)),
               ],
               const SizedBox(height: 8),
-              const Text('导入会覆盖当前课程表，节次设置保持不变。'),
+              const Text('导入会覆盖当前课表，作息时间保持不变。'),
             ],
           ),
         ),
@@ -315,7 +333,7 @@ class TimetableIoPage extends ConsumerWidget {
     }
 
     await ref
-        .read(timetableProvider.notifier)
+        .read(timetableLibraryProvider.notifier)
         .replaceSchedule(config: config, courses: preview.courses);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

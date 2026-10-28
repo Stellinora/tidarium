@@ -6,9 +6,14 @@ import 'model/course.dart';
 import 'model/time_slot.dart';
 import 'model/timetable_config.dart';
 import 'model/timetable_data.dart';
+import 'model/timetable_library.dart';
 
 final initialTimetableProvider = Provider<TimetableData>(
   (ref) => TimetableData.initial(),
+);
+
+final initialTimetableLibraryProvider = Provider<TimetableLibrary?>(
+  (ref) => null,
 );
 
 final timetableStoreProvider = Provider<TimetableStore>(
@@ -22,49 +27,71 @@ String newCourseId() {
   return 'course_${DateTime.now().microsecondsSinceEpoch}_$_courseIdSeed';
 }
 
-class TimetableController extends Notifier<TimetableData> {
+var _timetableIdSeed = 0;
+
+String _newTimetableId() {
+  _timetableIdSeed += 1;
+  return 'table_${DateTime.now().microsecondsSinceEpoch}_$_timetableIdSeed';
+}
+
+class TimetableLibraryController extends Notifier<TimetableLibrary> {
   Future<void> _pendingSave = Future<void>.value();
 
   @override
-  TimetableData build() => ref.watch(initialTimetableProvider);
+  TimetableLibrary build() {
+    final saved = ref.watch(initialTimetableLibraryProvider);
+    if (saved != null) return saved;
+    return TimetableLibrary.single(ref.watch(initialTimetableProvider));
+  }
 
   Future<void> addCourse(Course course) {
-    return _commit(state.copyWith(courses: [...state.courses, course]));
+    return _updateActive(
+      (data) => data.copyWith(courses: [...data.courses, course]),
+    );
   }
 
   Future<void> updateCourse(Course course) {
-    final next = [
-      for (final existing in state.courses)
-        if (existing.id == course.id) course else existing,
-    ];
-    return _commit(state.copyWith(courses: next));
+    return _updateActive(
+      (data) => data.copyWith(
+        courses: [
+          for (final existing in data.courses)
+            if (existing.id == course.id) course else existing,
+        ],
+      ),
+    );
   }
 
   Future<void> removeCourse(String courseId) {
-    final next = state.courses
-        .where((course) => course.id != courseId)
-        .toList();
-    return _commit(state.copyWith(courses: next));
+    return _updateActive(
+      (data) => data.copyWith(
+        courses: data.courses.where((course) => course.id != courseId).toList(),
+      ),
+    );
   }
 
   Future<void> clearCourses() {
-    return _commit(state.copyWith(courses: const []));
+    return _updateActive((data) => data.copyWith(courses: const []));
   }
 
   Future<void> updateConfig(TimetableConfig config) {
-    return _commit(state.copyWith(config: config));
+    return _updateActive((data) => data.copyWith(config: config));
   }
 
   Future<void> updateTimeSlot(TimeSlot slot) {
-    final next = [
-      for (final existing in state.timeSlots)
-        if (existing.number == slot.number) slot else existing,
-    ];
-    return _commit(state.copyWith(timeSlots: next));
+    return _updateActive(
+      (data) => data.copyWith(
+        timeSlots: [
+          for (final existing in data.timeSlots)
+            if (existing.number == slot.number) slot else existing,
+        ],
+      ),
+    );
   }
 
   Future<void> replaceTimeSlots(List<TimeSlot> slots) {
-    return _commit(state.copyWith(timeSlots: List.unmodifiable(slots)));
+    return _updateActive(
+      (data) => data.copyWith(timeSlots: List.unmodifiable(slots)),
+    );
   }
 
   Future<void> replaceSchedule({
@@ -72,8 +99,8 @@ class TimetableController extends Notifier<TimetableData> {
     List<TimeSlot>? timeSlots,
     List<Course>? courses,
   }) {
-    return _commit(
-      state.copyWith(
+    return _updateActive(
+      (data) => data.copyWith(
         config: config,
         timeSlots: timeSlots == null ? null : List.unmodifiable(timeSlots),
         courses: courses == null ? null : List.unmodifiable(courses),
@@ -81,13 +108,57 @@ class TimetableController extends Notifier<TimetableData> {
     );
   }
 
-  Future<void> _commit(TimetableData data) {
-    state = data;
+  Future<void> addTimetable({String? name}) async {
+    final trimmedName = name?.trim() ?? '';
+    final data = TimetableData.initial(
+      id: _newTimetableId(),
+      name: trimmedName.isEmpty
+          ? '课表 ${state.timetables.length + 1}'
+          : trimmedName,
+    );
+    await _commit(state.add(data));
+    ref.read(selectedWeekProvider.notifier).followToday();
+  }
+
+  Future<void> selectTimetable(String id) async {
+    if (state.find(id) == null || state.activeId == id) return;
+    await _commit(state.copyWith(activeId: id));
+    ref.read(selectedWeekProvider.notifier).followToday();
+  }
+
+  Future<void> renameTimetable(String id, String name) async {
+    final trimmedName = name.trim();
+    final target = state.find(id);
+    if (trimmedName.isEmpty || target == null) return;
+    await _commit(
+      state.replace(
+        target.copyWith(config: target.config.copyWith(name: trimmedName)),
+      ),
+    );
+  }
+
+  Future<void> deleteTimetable(String id) async {
+    if (state.timetables.length <= 1 || state.find(id) == null) return;
+    final wasActive = state.activeId == id;
+    await _commit(state.remove(id));
+    if (wasActive) {
+      ref.read(selectedWeekProvider.notifier).followToday();
+    }
+  }
+
+  Future<void> _updateActive(
+    TimetableData Function(TimetableData data) update,
+  ) {
+    return _commit(state.replace(update(state.active)));
+  }
+
+  Future<void> _commit(TimetableLibrary library) {
+    state = library;
     final store = ref.read(timetableStoreProvider);
 
     _pendingSave = _pendingSave.then((_) async {
       try {
-        await store.save(data);
+        await store.saveLibrary(library);
       } catch (error) {
         debugPrint('Timetable persistence failed: $error');
       }
@@ -97,8 +168,13 @@ class TimetableController extends Notifier<TimetableData> {
   }
 }
 
-final timetableProvider = NotifierProvider<TimetableController, TimetableData>(
-  TimetableController.new,
+final timetableLibraryProvider =
+    NotifierProvider<TimetableLibraryController, TimetableLibrary>(
+      TimetableLibraryController.new,
+    );
+
+final timetableProvider = Provider<TimetableData>(
+  (ref) => ref.watch(timetableLibraryProvider).active,
 );
 
 class SelectedWeekController extends Notifier<int?> {

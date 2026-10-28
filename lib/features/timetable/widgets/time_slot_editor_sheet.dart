@@ -82,7 +82,7 @@ class _TimeSlotEditorSheetState extends State<_TimeSlotEditorSheet> {
             children: [
               Expanded(
                 child: Text(
-                  widget.isNew ? '新增节次' : '编辑第 ${widget.initial.number} 节',
+                  widget.isNew ? '新增时间段' : '编辑时段 ${widget.initial.number}',
                   style: theme.textTheme.titleLarge,
                 ),
               ),
@@ -127,7 +127,7 @@ class _TimeSlotEditorSheetState extends State<_TimeSlotEditorSheet> {
                   maxLength: 5,
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
-                    labelText: '节次别名（可选）',
+                    labelText: '时间段别名（可选）',
                     hintText: '例如：早自习',
                     border: OutlineInputBorder(),
                   ),

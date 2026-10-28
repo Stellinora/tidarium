@@ -35,7 +35,7 @@ abstract final class TimeSlotPlan {
           slot.startMinutes < other.endMinutes &&
           other.startMinutes < slot.endMinutes;
       if (overlaps) {
-        return '与第 ${other.number} 节时间重叠';
+        return '与时段 ${other.number} 时间重叠';
       }
     }
     return null;
@@ -87,7 +87,7 @@ abstract final class TimeSlotPlan {
       return const SlotPlanResult(
         slots: [],
         courses: [],
-        error: '新增节次后无法重新映射课程时间',
+        error: '新增时间段后无法重新映射课程时间',
       );
     }
 
@@ -125,7 +125,7 @@ abstract final class TimeSlotPlan {
       return SlotPlanResult(
         slots: slots,
         courses: courses,
-        error: '第 $number 节正被 $usedCount 门课程使用，请先调整课程',
+        error: '时段 $number 正被 $usedCount 门课程使用，请先调整课程',
       );
     }
 
@@ -141,7 +141,7 @@ abstract final class TimeSlotPlan {
       return const SlotPlanResult(
         slots: [],
         courses: [],
-        error: '删除节次后无法重新映射课程时间',
+        error: '删除时间段后无法重新映射课程时间',
       );
     }
 

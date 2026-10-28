@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'course_merge.dart';
 import 'model/course.dart';
 import 'timetable_io_page.dart';
+import 'timetable_manager_page.dart';
 import 'timetable_providers.dart';
 import 'timetable_settings_page.dart';
 import 'timetable_time.dart';
@@ -125,26 +126,34 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '第 $week 周',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.sizeOf(context).width * 0.62,
                     ),
-                    Text(
-                      _weekRangeLabel(
-                        config.semesterStart,
-                        week,
-                        config.firstWeekday,
-                      ),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '第 $week 周',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '${config.name} · ${_weekRangeLabel(config.semesterStart, week, config.firstWeekday)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 const Icon(Icons.arrow_drop_down),
               ],
@@ -159,6 +168,11 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                   ref.read(selectedWeekProvider.notifier).followToday(),
               icon: const Icon(Icons.today_outlined),
             ),
+          IconButton(
+            tooltip: '课表管理',
+            onPressed: () => _openTimetableManager(context),
+            icon: const Icon(Icons.layers_outlined),
+          ),
           PopupMenuButton<_MenuAction>(
             tooltip: '更多',
             onSelected: (action) =>
@@ -196,7 +210,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                 value: _MenuAction.settings,
                 child: ListTile(
                   leading: Icon(Icons.tune),
-                  title: Text('课程表设置'),
+                  title: Text('课表设置'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -325,7 +339,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
       case _MenuAction.toggleWeekends:
         final config = ref.read(timetableProvider).config;
         await ref
-            .read(timetableProvider.notifier)
+            .read(timetableLibraryProvider.notifier)
             .updateConfig(config.copyWith(showWeekends: !config.showWeekends));
       case _MenuAction.io:
         await _openIo(context);
@@ -339,6 +353,12 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
   Future<void> _openSettings(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const TimetableSettingsPage()),
+    );
+  }
+
+  Future<void> _openTimetableManager(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TimetableManagerPage()),
     );
   }
 
@@ -364,7 +384,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     );
     if (course == null || !context.mounted) return;
 
-    await ref.read(timetableProvider.notifier).addCourse(course);
+    await ref.read(timetableLibraryProvider.notifier).addCourse(course);
     await _revealWeekendIfNeeded(ref, course);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
@@ -393,7 +413,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
           timeSlots: data.timeSlots,
         );
         if (updated == null || !context.mounted) return;
-        await ref.read(timetableProvider.notifier).updateCourse(updated);
+        await ref.read(timetableLibraryProvider.notifier).updateCourse(updated);
         await _revealWeekendIfNeeded(ref, updated);
       case CourseDetailAction.delete:
         final confirmed = await showDialog<bool>(
@@ -414,7 +434,9 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
           ),
         );
         if (confirmed != true || !context.mounted) return;
-        await ref.read(timetableProvider.notifier).removeCourse(course.id);
+        await ref
+            .read(timetableLibraryProvider.notifier)
+            .removeCourse(course.id);
     }
   }
 
@@ -423,7 +445,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     final config = ref.read(timetableProvider).config;
     if (config.showWeekends) return;
     await ref
-        .read(timetableProvider.notifier)
+        .read(timetableLibraryProvider.notifier)
         .updateConfig(config.copyWith(showWeekends: true));
   }
 
@@ -447,7 +469,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     );
     if (confirmed != true || !context.mounted) return;
 
-    await ref.read(timetableProvider.notifier).clearCourses();
+    await ref.read(timetableLibraryProvider.notifier).clearCourses();
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('课程已清空')));

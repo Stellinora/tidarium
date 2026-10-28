@@ -42,7 +42,7 @@ class TimetableCourseBlock extends StatelessWidget {
                 children: [
                   if (!narrow && constraints.maxHeight >= 42)
                     Text(
-                      '${course.startSection}-${course.endSection}节',
+                      '${course.startSection}-${course.endSection}时段',
                       maxLines: 1,
                       overflow: TextOverflow.clip,
                       style: TextStyle(

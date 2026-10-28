@@ -19,7 +19,7 @@ IcsExport buildIcsExport(
   final config = data.config;
   final semesterStart = config.semesterStart;
   if (semesterStart == null) {
-    throw const FormatException('请先在课程表设置中填写学期开始日期');
+    throw const FormatException('请先在课表设置中填写学期开始日期');
   }
 
   final slotByNumber = {for (final slot in data.timeSlots) slot.number: slot};

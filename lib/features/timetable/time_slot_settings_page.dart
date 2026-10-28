@@ -69,10 +69,10 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('节次时间'),
+          title: const Text('作息时间'),
           actions: [
             IconButton(
-              tooltip: '新增节次',
+              tooltip: '新增时间段',
               onPressed: _addSlot,
               icon: const Icon(Icons.add),
             ),
@@ -93,7 +93,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
                 Expanded(
                   child: _DurationField(
                     controller: _classDurationController,
-                    label: '单节时长（分钟）',
+                    label: '每段时长（分钟）',
                     onChanged: _onClassDurationChanged,
                   ),
                 ),
@@ -109,7 +109,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              '新增节次时会用这两个值计算默认开始和结束时间。',
+              '新增时间段时会用这两个值计算默认开始和结束时间。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -118,10 +118,10 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
             Row(
               children: [
                 Expanded(
-                  child: Text('节次列表', style: theme.textTheme.titleSmall),
+                  child: Text('时间段列表', style: theme.textTheme.titleSmall),
                 ),
                 Text(
-                  '共 ${_slots.length} 节',
+                  '共 ${_slots.length} 个时间段',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -134,7 +134,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
-                    '还没有节次，点击右上角 + 添加。',
+                    '还没有时间段，点击右上角 + 添加。',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -153,7 +153,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
                         style: const TextStyle(fontSize: 12),
                       ),
                     ),
-                    title: Text(slot.alias ?? '第 ${slot.number} 节'),
+                    title: Text(slot.alias ?? '时段 ${slot.number}'),
                     subtitle: Text(
                       '${formatMinuteOfDay(slot.startMinutes)} - '
                       '${formatMinuteOfDay(slot.endMinutes)}',
@@ -180,13 +180,13 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
             OutlinedButton.icon(
               onPressed: _restoreDefaultTimes,
               icon: const Icon(Icons.restart_alt),
-              label: const Text('恢复默认节次时间'),
+              label: const Text('恢复默认作息时间'),
             ),
             const SizedBox(height: 12),
             Text(
-              '删除未被课程使用的节次后，后面的节次会重新编号，'
-              '相关课程会按原时间自动映射到新的节次。'
-              '被课程使用的节次不能删除。',
+              '删除未被课程使用的时间段后，后面的时间段会重新编号，'
+              '相关课程会按原时间自动映射到新的时间段。'
+              '被课程使用的时间段不能删除。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -267,15 +267,15 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
   Future<void> _deleteSlot(TimeSlot slot) async {
     final used = TimeSlotPlan.usageCount(_courses, slot.number);
     if (used > 0) {
-      _showMessage('第 ${slot.number} 节正被 $used 门课程使用，请先调整课程');
+      _showMessage('时段 ${slot.number} 正被 $used 门课程使用，请先调整课程');
       return;
     }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除节次'),
-        content: Text('确定删除第 ${slot.number} 节吗？后面的节次会重新编号。'),
+        title: const Text('删除时间段'),
+        content: Text('确定删除时段 ${slot.number} 吗？后面的时间段会重新编号。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -311,8 +311,8 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('恢复默认节次时间'),
-        content: const Text('将把现有节次的起止时间恢复为默认值，节次数量和课程不会改变。'),
+        title: const Text('恢复默认作息时间'),
+        content: const Text('将把现有时间段的起止时间恢复为默认值，时间段数量和课程不会改变。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -370,7 +370,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
     );
 
     await ref
-        .read(timetableProvider.notifier)
+        .read(timetableLibraryProvider.notifier)
         .replaceSchedule(config: _config, timeSlots: _slots, courses: _courses);
     if (!mounted) return;
     setState(() {
@@ -385,7 +385,7 @@ class _TimeSlotSettingsPageState extends ConsumerState<TimeSlotSettingsPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('放弃修改'),
-        content: const Text('节次设置还没保存，确定离开吗？'),
+        content: const Text('作息时间还没保存，确定离开吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

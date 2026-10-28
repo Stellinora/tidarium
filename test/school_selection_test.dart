@@ -51,14 +51,14 @@ class _FakeAdapterRepository extends AdapterRepository {
   }
 }
 
-Widget _app() {
+Widget _app({SchoolLibraryMode mode = SchoolLibraryMode.all}) {
   return ProviderScope(
     overrides: [
       adapterRepositoryProvider.overrideWithValue(_FakeAdapterRepository()),
     ],
     child: MaterialApp(
       theme: buildTidariumTheme(Brightness.light),
-      home: const SchoolSelectionPage(),
+      home: SchoolSelectionPage(mode: mode),
     ),
   );
 }
@@ -88,4 +88,30 @@ void main() {
     expect(find.text('测试大学'), findsOneWidget);
     expect(find.text('通用教务系统'), findsNothing);
   });
+
+  testWidgets('generic mode only shows the pinned academic systems', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(mode: SchoolLibraryMode.generic));
+    await tester.pumpAndSettle();
+
+    expect(find.text('通用教务'), findsOneWidget);
+    expect(find.text('正方教务-通用教务'), findsOneWidget);
+    expect(find.text('超星教务系统-通用教务'), findsOneWidget);
+    expect(find.text('测试大学'), findsNothing);
+    expect(find.text('通用工具与服务'), findsNothing);
+  });
+
+  testWidgets(
+    'Shiguang mode keeps schools and tools but hides generic systems',
+    (tester) async {
+      await tester.pumpWidget(_app(mode: SchoolLibraryMode.shiguang));
+      await tester.pumpAndSettle();
+
+      expect(find.text('拾光学校库'), findsOneWidget);
+      expect(find.text('测试大学'), findsOneWidget);
+      expect(find.text('通用工具与服务'), findsOneWidget);
+      expect(find.text('正方教务-通用教务'), findsNothing);
+    },
+  );
 }

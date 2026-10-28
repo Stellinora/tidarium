@@ -1,7 +1,7 @@
 name: tidarium
 description: "Tidarium (时匣) — a unified schedule assistant with a sandboxed plugin ecosystem."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.2+6
 
 environment:
   sdk: ^3.13.5

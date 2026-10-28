@@ -65,7 +65,7 @@ Future<void> showWeekSelectorSheet(
                 if (currentWeek == null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    '先在课程表设置里填写学期开始日期，才能自动定位到本周。',
+                    '先在课表设置里填写学期开始日期，才能自动定位到本周。',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

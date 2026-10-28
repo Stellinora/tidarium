@@ -23,8 +23,8 @@ Future<CourseDetailAction?> showCourseDetailSheet(
       final startSlot = _slotAt(timeSlots, course.startSection);
       final endSlot = _slotAt(timeSlots, course.endSection);
       final timeText = startSlot == null || endSlot == null
-          ? '第 ${course.startSection}-${course.endSection} 节'
-          : '第 ${course.startSection}-${course.endSection} 节 · '
+          ? '第 ${course.startSection}-${course.endSection} 时段'
+          : '第 ${course.startSection}-${course.endSection} 时段 · '
                 '${formatMinuteOfDay(startSlot.startMinutes)}-'
                 '${formatMinuteOfDay(endSlot.endMinutes)}';
 

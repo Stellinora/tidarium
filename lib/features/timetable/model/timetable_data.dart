@@ -21,16 +21,25 @@ const List<TimeSlot> defaultTimeSlots = [
 
 class TimetableData {
   const TimetableData({
+    this.id = 'main',
     required this.config,
     required this.timeSlots,
     required this.courses,
   });
 
-  factory TimetableData.initial({DateTime? now}) {
+  factory TimetableData.initial({
+    DateTime? now,
+    String id = 'main',
+    String? name,
+  }) {
     final today = now ?? DateTime.now();
 
     return TimetableData(
-      config: TimetableConfig(semesterStart: startOfWeek(today)),
+      id: id,
+      config: TimetableConfig(
+        name: name ?? '我的课表',
+        semesterStart: startOfWeek(today),
+      ),
       timeSlots: defaultTimeSlots,
       courses: const [],
     );
@@ -60,6 +69,7 @@ class TimetableData {
     final rawConfig = json['config'];
 
     return TimetableData(
+      id: json['id'] as String? ?? 'main',
       config: rawConfig is Map
           ? TimetableConfig.fromJson(rawConfig.cast<String, Object?>())
           : const TimetableConfig(),
@@ -68,16 +78,19 @@ class TimetableData {
     );
   }
 
+  final String id;
   final TimetableConfig config;
   final List<TimeSlot> timeSlots;
   final List<Course> courses;
 
   TimetableData copyWith({
+    String? id,
     TimetableConfig? config,
     List<TimeSlot>? timeSlots,
     List<Course>? courses,
   }) {
     return TimetableData(
+      id: id ?? this.id,
       config: config ?? this.config,
       timeSlots: timeSlots ?? this.timeSlots,
       courses: courses ?? this.courses,
@@ -92,6 +105,7 @@ class TimetableData {
 
   Map<String, Object?> toJson() {
     return {
+      'id': id,
       'config': config.toJson(),
       'timeSlots': [for (final slot in timeSlots) slot.toJson()],
       'courses': [for (final course in courses) course.toJson()],

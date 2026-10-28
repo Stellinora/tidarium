@@ -211,7 +211,7 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
                 children: [
                   Text(
                     '先在上方网页完成登录，再点击下方按钮执行导入。'
-                    '导入会覆盖当前课程表。',
+                    '导入会覆盖当前课表。',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -326,7 +326,7 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
         title: const Text('执行导入'),
         content: Text(
           '将使用「${widget.adapter.adapterName}」导入课程，'
-          '并覆盖当前课程表。确定继续吗？',
+          '并覆盖当前课表。确定继续吗？',
         ),
         actions: [
           TextButton(
@@ -545,8 +545,8 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
           );
           if (extended.length > slots.length) {
             _warnings.add(
-              '已自动补充 ${extended.length - slots.length} 个节次，'
-              '请在课程表设置中确认时间',
+              '已自动补充 ${extended.length - slots.length} 个时间段，'
+              '请在课表设置的作息时间中确认',
             );
             slots = extended;
           }
@@ -571,7 +571,7 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
       }
 
       await ref
-          .read(timetableProvider.notifier)
+          .read(timetableLibraryProvider.notifier)
           .replaceSchedule(
             config: config,
             timeSlots: slots,

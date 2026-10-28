@@ -5,8 +5,12 @@ import 'adapter_selection_page.dart';
 import 'import_providers.dart';
 import 'models/school_models.dart';
 
+enum SchoolLibraryMode { all, shiguang, generic }
+
 class SchoolSelectionPage extends ConsumerStatefulWidget {
-  const SchoolSelectionPage({super.key});
+  const SchoolSelectionPage({super.key, this.mode = SchoolLibraryMode.all});
+
+  final SchoolLibraryMode mode;
 
   @override
   ConsumerState<SchoolSelectionPage> createState() =>
@@ -49,10 +53,23 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
     }
   }
 
+  List<SchoolEntry> get _sourceSchools {
+    return switch (widget.mode) {
+      SchoolLibraryMode.all => _schools,
+      SchoolLibraryMode.shiguang =>
+        _schools
+            .where((school) => !_isGenericSchool(school))
+            .toList(growable: false),
+      SchoolLibraryMode.generic =>
+        _schools.where(_isGenericSchool).toList(growable: false),
+    };
+  }
+
   List<SchoolEntry> get _filteredSchools {
     final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return _schools;
-    return _schools
+    final source = _sourceSchools;
+    if (query.isEmpty) return source;
+    return source
         .where((school) {
           return school.name.toLowerCase().contains(query) ||
               school.initial.toLowerCase().contains(query) ||
@@ -61,13 +78,29 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
         .toList(growable: false);
   }
 
+  String get _title {
+    return switch (widget.mode) {
+      SchoolLibraryMode.all => '选择学校',
+      SchoolLibraryMode.shiguang => '拾光学校库',
+      SchoolLibraryMode.generic => '通用教务',
+    };
+  }
+
+  String get _note {
+    return switch (widget.mode) {
+      SchoolLibraryMode.all => '适配器来自拾光课程表仓库（MIT），首次加载需要联网。',
+      SchoolLibraryMode.shiguang => '从拾光适配器仓库选择学校，首次加载需要联网。',
+      SchoolLibraryMode.generic => '选择教务系统类型，登录学校网页后再执行导入。',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('选择学校'),
+        title: Text(_title),
         actions: [
           IconButton(
             tooltip: '刷新适配器仓库',
@@ -102,7 +135,7 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '适配器来自拾光课程表仓库（MIT），首次加载需要联网。',
+                    _note,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -158,20 +191,32 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
       );
     }
 
+    if (widget.mode == SchoolLibraryMode.generic) {
+      final generic = [...schools]
+        ..sort(
+          (a, b) => _genericSchoolIds
+              .indexOf(a.id)
+              .compareTo(_genericSchoolIds.indexOf(b.id)),
+        );
+      return _buildEntries(theme, generic);
+    }
+
     if (_query.trim().isNotEmpty) {
       return _buildEntries(theme, schools);
     }
 
-    final generic = _schools.where(_isGenericSchool).toList()
-      ..sort(
-        (a, b) => _genericSchoolIds
-            .indexOf(a.id)
-            .compareTo(_genericSchoolIds.indexOf(b.id)),
-      );
-    final tools = _schools
+    final generic = widget.mode == SchoolLibraryMode.all
+        ? schools.where(_isGenericSchool).toList()
+        : <SchoolEntry>[];
+    generic.sort(
+      (a, b) => _genericSchoolIds
+          .indexOf(a.id)
+          .compareTo(_genericSchoolIds.indexOf(b.id)),
+    );
+    final tools = schools
         .where((school) => school.id == _toolsSchoolId)
         .toList(growable: false);
-    final others = _schools
+    final others = schools
         .where(
           (school) => !_isGenericSchool(school) && school.id != _toolsSchoolId,
         )

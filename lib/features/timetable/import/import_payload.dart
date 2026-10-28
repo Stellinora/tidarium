@@ -15,7 +15,7 @@ class ImportedCourses {
 List<TimeSlot> parseImportedTimeSlots(String raw) {
   final decoded = jsonDecode(raw);
   if (decoded is! List) {
-    throw const FormatException('节次数据格式不正确');
+    throw const FormatException('时间段数据格式不正确');
   }
 
   final slots = <TimeSlot>[];
@@ -26,7 +26,7 @@ List<TimeSlot> parseImportedTimeSlots(String raw) {
     final end = _time(item['endTime']);
     if (number == null || start == null || end == null) continue;
     if (end <= start) {
-      throw FormatException('第 $number 节结束时间不晚于开始时间');
+      throw FormatException('时段 $number 结束时间不晚于开始时间');
     }
     final alias = _string(item['alias']);
     slots.add(
@@ -46,10 +46,10 @@ List<TimeSlot> parseImportedTimeSlots(String raw) {
   slots.sort((a, b) => a.number.compareTo(b.number));
   for (var index = 0; index < slots.length; index++) {
     if (slots[index].number != index + 1) {
-      throw const FormatException('节次编号不连续');
+      throw const FormatException('时间段编号不连续');
     }
     if (index > 0 && slots[index].startMinutes < slots[index - 1].endMinutes) {
-      throw const FormatException('节次时间存在重叠');
+      throw const FormatException('作息时间存在重叠');
     }
   }
 
@@ -131,7 +131,7 @@ ImportedCourses parseImportedCourses(
       final startSlot = _findStartSlot(slots, startTime);
       final endSlot = _findEndSlot(slots, endTime);
       if (startSlot == null || endSlot == null) {
-        _warn(warnings, '$name：自定义时间与现有节次不匹配');
+        _warn(warnings, '$name：自定义时间与现有时间段不匹配');
         continue;
       }
       resolvedStart = startSlot.number;
@@ -143,7 +143,7 @@ ImportedCourses parseImportedCourses(
         resolvedStart < 1 ||
         resolvedEnd < resolvedStart ||
         resolvedEnd > slots.length) {
-      _warn(warnings, '$name：节次范围无效');
+      _warn(warnings, '$name：时间段范围无效');
       continue;
     }
 

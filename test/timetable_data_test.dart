@@ -4,6 +4,7 @@ import 'package:tidarium/features/timetable/data/timetable_store.dart';
 import 'package:tidarium/features/timetable/model/course.dart';
 import 'package:tidarium/features/timetable/model/timetable_config.dart';
 import 'package:tidarium/features/timetable/model/timetable_data.dart';
+import 'package:tidarium/features/timetable/model/timetable_library.dart';
 import 'package:tidarium/features/timetable/timetable_providers.dart';
 
 Course _course({String id = 'c1', String name = '高等数学'}) {
@@ -61,6 +62,49 @@ void main() {
     });
   });
 
+  group('TimetableLibrary JSON', () {
+    test('round-trips multiple timetables and the active id', () {
+      final first = TimetableData(
+        id: 'first',
+        config: const TimetableConfig(name: '第一课表'),
+        timeSlots: defaultTimeSlots,
+        courses: [_course()],
+      );
+      final second = TimetableData(
+        id: 'second',
+        config: const TimetableConfig(name: '第二课表'),
+        timeSlots: defaultTimeSlots,
+        courses: const [],
+      );
+      final library = TimetableLibrary(
+        activeId: 'second',
+        timetables: [first, second],
+      );
+
+      final restored = TimetableLibrary.fromJson(library.toJson());
+
+      expect(restored.activeId, 'second');
+      expect(restored.timetables, hasLength(2));
+      expect(restored.active.config.name, '第二课表');
+      expect(restored.find('first')!.courses, hasLength(1));
+    });
+
+    test('migrates a legacy single-timetable payload', () {
+      final data = TimetableData(
+        config: const TimetableConfig(name: '旧课表'),
+        timeSlots: defaultTimeSlots,
+        courses: [_course()],
+      );
+
+      final library = TimetableLibrary.fromJson(data.toJson());
+
+      expect(library.activeId, 'main');
+      expect(library.timetables, hasLength(1));
+      expect(library.active.config.name, '旧课表');
+      expect(library.active.courses, hasLength(1));
+    });
+  });
+
   group('TimetableController', () {
     late InMemoryTimetableStore store;
     late ProviderContainer container;
@@ -79,7 +123,7 @@ void main() {
     });
 
     test('adds, updates and removes courses while persisting', () async {
-      final notifier = container.read(timetableProvider.notifier);
+      final notifier = container.read(timetableLibraryProvider.notifier);
 
       await notifier.addCourse(_course());
       expect(container.read(timetableProvider).courses, hasLength(1));
@@ -95,7 +139,7 @@ void main() {
     });
 
     test('updates config and time slots', () async {
-      final notifier = container.read(timetableProvider.notifier);
+      final notifier = container.read(timetableLibraryProvider.notifier);
 
       await notifier.updateConfig(
         container
@@ -115,6 +159,33 @@ void main() {
         450,
       );
       expect((await store.load())!.timeSlots.first.startMinutes, 450);
+    });
+
+    test('creates, switches, renames and deletes timetables', () async {
+      final notifier = container.read(timetableLibraryProvider.notifier);
+
+      await notifier.addTimetable(name: '第二课表');
+      var library = container.read(timetableLibraryProvider);
+      expect(library.timetables, hasLength(2));
+      expect(library.active.config.name, '第二课表');
+      final secondId = library.activeId;
+
+      await notifier.addCourse(_course());
+      expect(container.read(timetableProvider).courses, hasLength(1));
+
+      await notifier.selectTimetable('main');
+      library = container.read(timetableLibraryProvider);
+      expect(library.activeId, 'main');
+      expect(container.read(timetableProvider).courses, isEmpty);
+
+      await notifier.renameTimetable(secondId, '实验课表');
+      expect(
+        container.read(timetableLibraryProvider).find(secondId)!.config.name,
+        '实验课表',
+      );
+
+      await notifier.deleteTimetable(secondId);
+      expect(container.read(timetableLibraryProvider).timetables, hasLength(1));
     });
 
     test('selected week follows today by default', () {

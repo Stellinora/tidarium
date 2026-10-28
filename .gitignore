@@ -56,3 +56,4 @@ app.*.map.json
 .widget_preview/
 
 .learn/
+/dist/

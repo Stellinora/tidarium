@@ -215,7 +215,7 @@ class _CourseEditorSheetState extends State<_CourseEditorSheet> {
                         isExpanded: true,
                         initialValue: _startSection,
                         decoration: const InputDecoration(
-                          labelText: '开始节次',
+                          labelText: '开始时段',
                           border: OutlineInputBorder(),
                         ),
                         items: [
@@ -243,7 +243,7 @@ class _CourseEditorSheetState extends State<_CourseEditorSheet> {
                         isExpanded: true,
                         initialValue: _endSection,
                         decoration: const InputDecoration(
-                          labelText: '结束节次',
+                          labelText: '结束时段',
                           border: OutlineInputBorder(),
                         ),
                         items: [

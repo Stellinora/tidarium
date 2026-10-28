@@ -30,18 +30,25 @@ Widget _app() {
   );
 }
 
+Future<void> _openTimeSlots(WidgetTester tester) async {
+  final entry = find.text('作息时间与默认时长');
+  await tester.ensureVisible(entry);
+  await tester.pumpAndSettle();
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('opens the time slot settings page', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('节次时间与默认时长'));
-    await tester.pumpAndSettle();
+    await _openTimeSlots(tester);
 
     expect(find.text('默认时长'), findsOneWidget);
-    expect(find.text('节次列表'), findsOneWidget);
-    expect(find.text('第 1 节'), findsOneWidget);
-    expect(find.text('共 13 节'), findsOneWidget);
+    expect(find.text('时间段列表'), findsOneWidget);
+    expect(find.text('时段 1'), findsOneWidget);
+    expect(find.text('共 13 个时间段'), findsOneWidget);
   });
 
   testWidgets('opens the import and export page', (tester) async {
@@ -53,7 +60,9 @@ void main() {
     await tester.tap(find.text('课表导入与导出'));
     await tester.pumpAndSettle();
 
-    expect(find.text('教务系统导入'), findsOneWidget);
+    expect(find.text('拾光学校库'), findsOneWidget);
+    expect(find.text('通用教务'), findsOneWidget);
+    expect(find.text('WakeUp 学校库'), findsOneWidget);
     expect(find.text('导出 ICS'), findsOneWidget);
     expect(find.text('导入 ICS'), findsOneWidget);
   });
@@ -61,21 +70,20 @@ void main() {
   testWidgets('adds and removes time slots', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('节次时间与默认时长'));
-    await tester.pumpAndSettle();
+    await _openTimeSlots(tester);
 
-    await tester.tap(find.byTooltip('新增节次'));
+    await tester.tap(find.byTooltip('新增时间段'));
     await tester.pumpAndSettle();
-    expect(find.text('新增节次'), findsOneWidget);
+    expect(find.text('新增时间段'), findsOneWidget);
 
     await tester.tap(find.text('添加'));
     await tester.pumpAndSettle();
-    expect(find.text('共 14 节'), findsOneWidget);
+    expect(find.text('共 14 个时间段'), findsOneWidget);
 
     await tester.tap(find.byTooltip('删除').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('删除').last);
     await tester.pumpAndSettle();
-    expect(find.text('共 13 节'), findsOneWidget);
+    expect(find.text('共 13 个时间段'), findsOneWidget);
   });
 }
