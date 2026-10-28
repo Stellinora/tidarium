@@ -145,8 +145,11 @@ jobs:
           fi
 
           "$APKSIGNER" verify --print-certs "$APK_PATH" | tee dist/SIGNING_CERT.txt
-          ACTUAL_SHA256="$(grep -i 'SHA-256 digest' dist/SIGNING_CERT.txt | head -n 1 | awk '{print $NF}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          EXPECTED_NORMALIZED="$(printf '%s' "$EXPECTED_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          normalize_sha256() {
+            printf '%s' "$1" | tr -d ':' | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'
+          }
+          ACTUAL_SHA256="$(normalize_sha256 "$(grep -i 'SHA-256 digest' dist/SIGNING_CERT.txt | head -n 1 | awk '{print $NF}')")"
+          EXPECTED_NORMALIZED="$(normalize_sha256 "$EXPECTED_SHA256")"
           if [ -z "$ACTUAL_SHA256" ]; then
             echo "::error::Could not read the APK certificate SHA-256 digest."
             exit 1
