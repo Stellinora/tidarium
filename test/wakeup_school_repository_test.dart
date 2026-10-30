@@ -119,6 +119,26 @@ void main() {
     expect(schools.map((item) => item.name), ['A 大学', 'B 大学', '未知']);
   });
 
+  test('uses the direct HDU new academic SSO entry', () {
+    final schools = parseWakeUpSchools(
+      jsonEncode({
+        'data': [
+          {
+            'name': '杭州电子科技大学',
+            'sortKey': 'H',
+            'type': 'zf',
+            'url': 'https://sso.hdu.edu.cn/login?service=https%3A%2F%2Fwebvpn.hdu.edu.cn',
+          },
+        ],
+      }),
+    );
+
+    expect(
+      schools.single.url.toString(),
+      'https://newjw.hdu.edu.cn/sso/driot4login',
+    );
+  });
+
   test('loads the bundled school catalog', () async {
     final schools = await WakeUpSchoolRepository().loadSchools();
 

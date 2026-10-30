@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'model/timetable_config.dart';
 import 'time_slot_settings_page.dart';
 import 'timetable_io_page.dart';
-import 'timetable_manager_page.dart';
 import 'timetable_providers.dart';
 import 'timetable_time.dart';
+import 'timetable_ui_settings_page.dart';
 
 class TimetableSettingsPage extends ConsumerWidget {
   const TimetableSettingsPage({super.key});
@@ -19,24 +19,25 @@ class TimetableSettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('课表设置')),
-      body: ListView(
-        children: [
-          _SectionHeader(title: '课表', theme: theme),
-          ListTile(
-            leading: const Icon(Icons.layers_outlined),
-            title: const Text('课表管理'),
-            subtitle: Text(
-              '当前：${config.name} · 共 ${ref.watch(timetableLibraryProvider).timetables.length} 个课表',
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const TimetableManagerPage(),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('课表设置'),
+            Text(
+              config.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          ),
-          const Divider(),
+          ],
+        ),
+      ),
+      body: ListView(
+        children: [
           _SectionHeader(title: '学期', theme: theme),
           ListTile(
             leading: const Icon(Icons.badge_outlined),
@@ -85,6 +86,8 @@ class TimetableSettingsPage extends ConsumerWidget {
               },
             ),
           ),
+          const Divider(),
+          _SectionHeader(title: '显示', theme: theme),
           SwitchListTile(
             secondary: const Icon(Icons.weekend_outlined),
             title: const Text('显示周末'),
@@ -92,6 +95,35 @@ class TimetableSettingsPage extends ConsumerWidget {
             onChanged: (value) {
               controller.updateConfig(config.copyWith(showWeekends: value));
             },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.person_outline),
+            title: const Text('显示教师'),
+            value: config.showTeacher,
+            onChanged: (value) {
+              controller.updateConfig(config.copyWith(showTeacher: value));
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.place_outlined),
+            title: const Text('显示上课地点'),
+            value: config.showLocation,
+            onChanged: (value) {
+              controller.updateConfig(config.copyWith(showLocation: value));
+            },
+          ),
+          const Divider(),
+          _SectionHeader(title: '界面', theme: theme),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('字体大小与背景'),
+            subtitle: const Text('课程文字、星期、时间与自定义背景图'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const TimetableUiSettingsPage(),
+              ),
+            ),
           ),
           const Divider(),
           _SectionHeader(title: '作息时间', theme: theme),

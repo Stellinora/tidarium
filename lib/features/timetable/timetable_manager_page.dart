@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'model/timetable_data.dart';
 import 'model/timetable_library.dart';
 import 'timetable_providers.dart';
+import 'timetable_settings_page.dart';
 
 class TimetableManagerPage extends ConsumerWidget {
   const TimetableManagerPage({super.key});
@@ -25,7 +26,7 @@ class TimetableManagerPage extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           Text(
-            '每个课表有独立的课程、作息时间和学期设置。'
+            '每个课表有独立的课程、学期、显示和作息设置。'
             '点击课表即可切换。',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -41,6 +42,7 @@ class TimetableManagerPage extends ConsumerWidget {
                 await controller.selectTimetable(timetable.id);
                 if (context.mounted) Navigator.of(context).pop();
               },
+              onSettings: () => _openSettings(context, ref, timetable),
               onRename: () => _renameTimetable(context, ref, timetable),
               onDelete: () => _deleteTimetable(
                 context,
@@ -68,6 +70,20 @@ class TimetableManagerPage extends ConsumerWidget {
 
     await ref.read(timetableLibraryProvider.notifier).addTimetable(name: name);
     if (context.mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _openSettings(
+    BuildContext context,
+    WidgetRef ref,
+    TimetableData timetable,
+  ) async {
+    await ref
+        .read(timetableLibraryProvider.notifier)
+        .selectTimetable(timetable.id);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TimetableSettingsPage()),
+    );
   }
 
   Future<void> _renameTimetable(
@@ -171,6 +187,7 @@ class _TimetableCard extends StatelessWidget {
     required this.active,
     required this.canDelete,
     required this.onTap,
+    required this.onSettings,
     required this.onRename,
     required this.onDelete,
   });
@@ -179,6 +196,7 @@ class _TimetableCard extends StatelessWidget {
   final bool active;
   final bool canDelete;
   final VoidCallback onTap;
+  final VoidCallback onSettings;
   final VoidCallback onRename;
   final VoidCallback onDelete;
 
@@ -209,6 +227,8 @@ class _TimetableCard extends StatelessWidget {
           tooltip: '更多操作',
           onSelected: (action) {
             switch (action) {
+              case _TableAction.settings:
+                onSettings();
               case _TableAction.rename:
                 onRename();
               case _TableAction.delete:
@@ -216,6 +236,14 @@ class _TimetableCard extends StatelessWidget {
             }
           },
           itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: _TableAction.settings,
+              child: ListTile(
+                leading: Icon(Icons.tune),
+                title: Text('设置'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
             const PopupMenuItem(
               value: _TableAction.rename,
               child: ListTile(
@@ -241,4 +269,4 @@ class _TimetableCard extends StatelessWidget {
   }
 }
 
-enum _TableAction { rename, delete }
+enum _TableAction { settings, rename, delete }

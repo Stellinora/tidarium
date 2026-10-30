@@ -56,6 +56,8 @@ class TimetableGrid extends StatelessWidget {
               semesterStart: semesterStart,
               firstWeekday: config.firstWeekday,
               todayWeekday: todayWeekday,
+              weekdayHeaderFontSize: config.weekdayHeaderFontSize,
+              dateFontSize: config.dateFontSize,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -69,6 +71,8 @@ class TimetableGrid extends StatelessWidget {
                       child: _TimeColumn(
                         timeSlots: timeSlots,
                         highlightedSection: currentSection,
+                        slotFontSize: config.timeSlotFontSize,
+                        textFontSize: config.timeTextFontSize,
                       ),
                     ),
                     SizedBox(
@@ -117,24 +121,39 @@ class TimetableGrid extends StatelessWidget {
                               ),
                             ),
                             for (final block in blocks)
-                              Positioned(
-                                left: block.leftFraction * contentWidth + 1.5,
-                                top:
-                                    (block.startSection - 1) *
-                                        timetableRowHeight +
-                                    1.5,
-                                width: (block.widthFraction * contentWidth - 3)
-                                    .clamp(18, contentWidth)
-                                    .toDouble(),
-                                height:
-                                    (block.sectionSpan * timetableRowHeight - 3)
-                                        .clamp(18, gridHeight)
-                                        .toDouble(),
-                                child: TimetableCourseBlock(
-                                  course: block.course,
-                                  onTap: () => onCourseTap(block.course),
+                              if (days.contains(block.course.day))
+                                Positioned(
+                                  left:
+                                      (days.indexOf(block.course.day) +
+                                              block.leftFraction) *
+                                          cellWidth +
+                                      1.5,
+                                  top:
+                                      (block.startSection - 1) *
+                                          timetableRowHeight +
+                                      1.5,
+                                  width: (block.widthFraction * cellWidth - 3)
+                                      .clamp(18, cellWidth)
+                                      .toDouble(),
+                                  height:
+                                      (block.sectionSpan * timetableRowHeight -
+                                              3)
+                                          .clamp(18, gridHeight)
+                                          .toDouble(),
+                                  child: TimetableCourseBlock(
+                                    key: ValueKey(block.course.id),
+                                    course: block.course,
+                                    showTeacher: config.showTeacher,
+                                    showLocation: config.showLocation,
+                                    courseNameFontSize:
+                                        config.courseNameFontSize,
+                                    courseInfoFontSize:
+                                        config.courseInfoFontSize,
+                                    sectionLabelFontSize:
+                                        config.sectionLabelFontSize,
+                                    onTap: () => onCourseTap(block.course),
+                                  ),
                                 ),
-                              ),
                           ],
                         ),
                       ),
@@ -157,6 +176,8 @@ class _DayHeader extends StatelessWidget {
     required this.semesterStart,
     required this.firstWeekday,
     required this.todayWeekday,
+    required this.weekdayHeaderFontSize,
+    required this.dateFontSize,
   });
 
   final List<int> days;
@@ -164,6 +185,8 @@ class _DayHeader extends StatelessWidget {
   final DateTime? semesterStart;
   final int firstWeekday;
   final int? todayWeekday;
+  final double weekdayHeaderFontSize;
+  final double dateFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -225,6 +248,7 @@ class _DayHeader extends StatelessWidget {
                         Text(
                           weekdayName(day).replaceFirst('周', ''),
                           style: theme.textTheme.labelLarge?.copyWith(
+                            fontSize: weekdayHeaderFontSize,
                             fontWeight: FontWeight.w700,
                             color: isToday
                                 ? theme.colorScheme.primary
@@ -236,7 +260,7 @@ class _DayHeader extends StatelessWidget {
                           Text(
                             formatShortDate(date),
                             style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
+                              fontSize: dateFontSize,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -257,10 +281,14 @@ class _TimeColumn extends StatelessWidget {
   const _TimeColumn({
     required this.timeSlots,
     required this.highlightedSection,
+    required this.slotFontSize,
+    required this.textFontSize,
   });
 
   final List<TimeSlot> timeSlots;
   final int? highlightedSection;
+  final double slotFontSize;
+  final double textFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +309,7 @@ class _TimeColumn extends StatelessWidget {
                 Text(
                   slot.alias ?? '${slot.number}',
                   style: theme.textTheme.labelMedium?.copyWith(
+                    fontSize: slotFontSize,
                     fontWeight: FontWeight.w700,
                     color: slot.number == highlightedSection
                         ? theme.colorScheme.primary
@@ -291,7 +320,7 @@ class _TimeColumn extends StatelessWidget {
                 Text(
                   formatMinuteOfDay(slot.startMinutes),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
+                    fontSize: textFontSize,
                     height: 1.05,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -299,7 +328,7 @@ class _TimeColumn extends StatelessWidget {
                 Text(
                   formatMinuteOfDay(slot.endMinutes),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
+                    fontSize: textFontSize,
                     height: 1.05,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

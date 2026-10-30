@@ -30,6 +30,19 @@ void main() {
           semesterStart: DateTime(2026, 9, 2),
           totalWeeks: 16,
           showWeekends: true,
+          showTeacher: false,
+          showLocation: false,
+          courseNameFontSize: 15,
+          courseInfoFontSize: 10.5,
+          sectionLabelFontSize: 8,
+          weekdayHeaderFontSize: 16,
+          dateFontSize: 11,
+          timeSlotFontSize: 12,
+          timeTextFontSize: 8.5,
+          weekTitleFontSize: 18,
+          hintFontSize: 13,
+          backgroundImagePath: '/tmp/background.jpg',
+          backgroundImageOpacity: 0.6,
           firstWeekday: DateTime.sunday,
         ),
         timeSlots: defaultTimeSlots,
@@ -42,6 +55,19 @@ void main() {
       expect(restored.config.semesterStart, DateTime(2026, 9, 2));
       expect(restored.config.totalWeeks, 16);
       expect(restored.config.showWeekends, isTrue);
+      expect(restored.config.showTeacher, isFalse);
+      expect(restored.config.showLocation, isFalse);
+      expect(restored.config.courseNameFontSize, 15);
+      expect(restored.config.courseInfoFontSize, 10.5);
+      expect(restored.config.sectionLabelFontSize, 8);
+      expect(restored.config.weekdayHeaderFontSize, 16);
+      expect(restored.config.dateFontSize, 11);
+      expect(restored.config.timeSlotFontSize, 12);
+      expect(restored.config.timeTextFontSize, 8.5);
+      expect(restored.config.weekTitleFontSize, 18);
+      expect(restored.config.hintFontSize, 13);
+      expect(restored.config.backgroundImagePath, '/tmp/background.jpg');
+      expect(restored.config.backgroundImageOpacity, 0.6);
       expect(restored.config.firstWeekday, DateTime.sunday);
       expect(restored.timeSlots, hasLength(defaultTimeSlots.length));
       expect(
@@ -59,6 +85,12 @@ void main() {
       expect(data.timeSlots, hasLength(defaultTimeSlots.length));
       expect(data.courses, isEmpty);
       expect(data.config.totalWeeks, 20);
+      expect(data.config.showTeacher, isTrue);
+      expect(data.config.showLocation, isTrue);
+      expect(data.config.courseNameFontSize, 12);
+      expect(data.config.courseInfoFontSize, 9.5);
+      expect(data.config.backgroundImagePath, isNull);
+      expect(data.config.backgroundImageOpacity, 0.35);
     });
   });
 

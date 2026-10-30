@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -138,7 +140,10 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                         Text(
                           '第 $week 周',
                           style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                              ?.copyWith(
+                                fontSize: config.weekTitleFontSize,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                         Text(
                           '${config.name} · ${_weekRangeLabel(config.semesterStart, week, config.firstWeekday)}',
@@ -146,6 +151,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
+                                fontSize: config.dateFontSize,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant,
@@ -233,68 +239,85 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
         icon: const Icon(Icons.add),
         label: const Text('添加课程'),
       ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            if (data.courses.isEmpty)
-              _HintBar(
-                icon: Icons.touch_app_outlined,
-                message: '还没有课程。点按空白格或右下角按钮添加第一门课程。',
-                actionLabel: null,
-                onAction: null,
-              ),
-            if (config.semesterStart == null)
-              _HintBar(
-                icon: Icons.event_busy_outlined,
-                message: '还没有设置学期开始日期，周次不会自动定位。',
-                actionLabel: '去设置',
-                onAction: () => _openSettings(context),
-              ),
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: totalWeeks,
-                onPageChanged: (index) {
-                  final target = index + 1;
-                  final selected = ref.read(selectedWeekProvider);
-                  if (selected == null &&
-                      currentWeek != null &&
-                      target == currentWeek) {
-                    return;
-                  }
-                  if (selected != target) {
-                    ref.read(selectedWeekProvider.notifier).select(target);
-                  }
-                },
-                itemBuilder: (context, index) {
-                  final pageWeek = index + 1;
-                  final isPageCurrent =
-                      currentWeek != null && pageWeek == currentWeek;
-
-                  return TimetableGrid(
-                    key: ValueKey('timetable-week-$pageWeek'),
-                    config: config,
-                    timeSlots: data.timeSlots,
-                    blocks: mergeCoursesForWeek(
-                      data.courses,
-                      pageWeek,
-                      maxSection: data.timeSlots.length,
-                    ),
-                    weekNumber: pageWeek,
-                    todayWeekday: isPageCurrent ? now.weekday : null,
-                    currentSection: isPageCurrent
-                        ? currentSectionNumber(data.timeSlots, now)
-                        : null,
-                    onCourseTap: (course) => _openCourse(context, ref, course),
-                    onCellTap: (day, section) =>
-                        _addCourse(context, ref, day: day, section: section),
-                  );
-                },
-              ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (config.backgroundImagePath != null)
+            _TimetableBackground(
+              path: config.backgroundImagePath!,
+              opacity: config.backgroundImageOpacity,
             ),
-          ],
-        ),
+          SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                if (data.courses.isEmpty)
+                  _HintBar(
+                    icon: Icons.touch_app_outlined,
+                    message: '还没有课程。点按空白格或右下角按钮添加第一门课程。',
+                    fontSize: config.hintFontSize,
+                    actionLabel: null,
+                    onAction: null,
+                  ),
+                if (config.semesterStart == null)
+                  _HintBar(
+                    icon: Icons.event_busy_outlined,
+                    message: '还没有设置学期开始日期，周次不会自动定位。',
+                    fontSize: config.hintFontSize,
+                    actionLabel: '去设置',
+                    onAction: () => _openSettings(context),
+                  ),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: totalWeeks,
+                    onPageChanged: (index) {
+                      final target = index + 1;
+                      final selected = ref.read(selectedWeekProvider);
+                      if (selected == null &&
+                          currentWeek != null &&
+                          target == currentWeek) {
+                        return;
+                      }
+                      if (selected != target) {
+                        ref.read(selectedWeekProvider.notifier).select(target);
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      final pageWeek = index + 1;
+                      final isPageCurrent =
+                          currentWeek != null && pageWeek == currentWeek;
+
+                      return TimetableGrid(
+                        key: ValueKey('timetable-week-$pageWeek'),
+                        config: config,
+                        timeSlots: data.timeSlots,
+                        blocks: mergeCoursesForWeek(
+                          data.courses,
+                          pageWeek,
+                          maxSection: data.timeSlots.length,
+                        ),
+                        weekNumber: pageWeek,
+                        todayWeekday: isPageCurrent ? now.weekday : null,
+                        currentSection: isPageCurrent
+                            ? currentSectionNumber(data.timeSlots, now)
+                            : null,
+                        onCourseTap: (course) =>
+                            _openCourse(context, ref, course),
+                        onCellTap: (day, section) => _addCourse(
+                          context,
+                          ref,
+                          day: day,
+                          section: section,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -478,18 +501,52 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
 
 enum _MenuAction { addCourse, toggleWeekends, io, settings, clearCourses }
 
+class _TimetableBackground extends StatelessWidget {
+  const _TimetableBackground({required this.path, required this.opacity});
+
+  final String path;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.file(
+            File(path),
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.low,
+            errorBuilder: (context, error, stackTrace) =>
+                const SizedBox.shrink(),
+          ),
+          ColoredBox(
+            color: theme.colorScheme.surface.withValues(
+              alpha: (1 - opacity).clamp(0, 1).toDouble(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HintBar extends StatelessWidget {
   const _HintBar({
     required this.icon,
     required this.message,
     required this.actionLabel,
     required this.onAction,
+    this.fontSize = 12,
   });
 
   final IconData icon;
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -507,6 +564,7 @@ class _HintBar extends StatelessWidget {
             child: Text(
               message,
               style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: fontSize,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),

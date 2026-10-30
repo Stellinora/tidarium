@@ -6,16 +6,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../timetable_providers.dart';
+import 'adapters/hdu_adapter.dart';
 import 'import_payload.dart';
 import 'import_providers.dart';
 import 'models/school_models.dart';
 import 'web_bridge_js.dart';
 
 class WebImportPage extends ConsumerStatefulWidget {
-  const WebImportPage({super.key, required this.school, required this.adapter});
+  const WebImportPage({
+    super.key,
+    required this.school,
+    required this.adapter,
+    this.localScript,
+  });
 
   final SchoolEntry school;
   final SchoolAdapter adapter;
+  final String? localScript;
 
   @override
   ConsumerState<WebImportPage> createState() => _WebImportPageState();
@@ -29,18 +36,19 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
   var _progress = 0.0;
   String? _pageTitle;
   String? _currentUrl;
-  String? _defaultUserAgent;
-  var _desktopMode = false;
+  var _browserMode = _BrowserMode.mobile;
 
   String? _coursesRaw;
   String? _slotsRaw;
   String? _configRaw;
   final _warnings = <String>[];
   Timer? _importTimeout;
+  Timer? _loadingTimeout;
 
   @override
   void dispose() {
     _importTimeout?.cancel();
+    _loadingTimeout?.cancel();
     super.dispose();
   }
 
@@ -58,31 +66,31 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
         NavigationDelegate(
           onProgress: (progress) {
             if (!mounted) return;
+            if (progress >= 100) {
+              _finishLoading();
+              return;
+            }
             setState(() => _progress = progress / 100);
           },
           onPageStarted: (_) {
-            if (!mounted) return;
-            setState(() {
-              _loading = true;
-              _pageTitle = null;
-            });
+            _beginLoading();
+            _injectNavigationShim();
           },
-          onPageFinished: (_) async {
-            await _injectBridge();
-            final title = await _controller.getTitle();
-            final currentUrl = await _controller.currentUrl();
-            _defaultUserAgent ??= await _controller.getUserAgent();
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _progress = 1;
-              _pageTitle = title;
-              _currentUrl = currentUrl;
-            });
+          onPageFinished: _handlePageFinished,
+          onUrlChange: (change) {
+            final url = change.url;
+            if (url == null || !mounted) return;
+            setState(() => _currentUrl = url);
+          },
+          onHttpError: (error) {
+            if (!_loading) return;
+            final status = error.response?.statusCode;
+            _finishLoading();
+            _toast('网页返回 HTTP 错误${status == null ? '' : '：$status'}');
           },
           onWebResourceError: (error) {
             if (error.isForMainFrame ?? true) {
-              if (mounted) setState(() => _loading = false);
+              _finishLoading();
               _toast('网页加载失败：${error.description}');
             }
           },
@@ -99,7 +107,16 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
         ),
       );
 
-    _loadPage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _beginLoading();
+      _initialize();
+    });
+  }
+
+  Future<void> _initialize() async {
+    await _controller.setUserAgent(_userAgentFor(_browserMode));
+    await _loadPage();
   }
 
   Future<void> _loadPage() async {
@@ -137,16 +154,20 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
             onPressed: _importing ? null : _promptForUrl,
             icon: const Icon(Icons.link),
           ),
-          IconButton(
-            tooltip: _desktopMode ? '手机模式' : '桌面模式',
-            onPressed: _importing ? null : _toggleDesktopMode,
-            icon: Icon(
-              _desktopMode ? Icons.phone_android : Icons.desktop_windows,
-            ),
+          PopupMenuButton<_BrowserMode>(
+            tooltip: '浏览器模式',
+            initialValue: _browserMode,
+            enabled: !_importing,
+            onSelected: _setBrowserMode,
+            icon: const Icon(Icons.devices),
+            itemBuilder: (context) => [
+              for (final mode in _BrowserMode.values)
+                PopupMenuItem(value: mode, child: Text(mode.label)),
+            ],
           ),
           IconButton(
             tooltip: '刷新',
-            onPressed: _importing ? null : _controller.reload,
+            onPressed: _importing ? null : _reloadPage,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -211,7 +232,8 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
                 children: [
                   Text(
                     '先在上方网页完成登录，再点击下方按钮执行导入。'
-                    '导入会覆盖当前课表。',
+                    '导入会覆盖当前课表。若登录后页面空白，'
+                    '可尝试右上角浏览器模式或刷新。',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -290,20 +312,86 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-      _progress = 0;
-      _currentUrl = address;
-    });
+    _beginLoading();
+    setState(() => _currentUrl = address);
     await _controller.loadRequest(uri);
   }
 
-  Future<void> _toggleDesktopMode() async {
-    setState(() => _desktopMode = !_desktopMode);
-    await _controller.setUserAgent(
-      _desktopMode ? _desktopUserAgent : _defaultUserAgent,
-    );
+  Future<void> _setBrowserMode(_BrowserMode mode) async {
+    if (mode == _browserMode) return;
+    setState(() => _browserMode = mode);
+    await _controller.setUserAgent(_userAgentFor(mode));
+    await _controller.clearCache();
     await _controller.reload();
+  }
+
+  Future<void> _reloadPage() async {
+    _beginLoading();
+    await _controller.clearCache();
+    await _controller.reload();
+  }
+
+  void _beginLoading() {
+    _loadingTimeout?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _progress = 0;
+      _pageTitle = null;
+    });
+    _loadingTimeout = Timer(const Duration(seconds: 12), () {
+      if (!mounted || !_loading) return;
+      setState(() {
+        _loading = false;
+        _progress = 1;
+      });
+      _toast('页面加载较慢，已显示当前内容；如仍空白请切换浏览器模式或刷新');
+    });
+  }
+
+  void _finishLoading({String? title, String? url}) {
+    _loadingTimeout?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _progress = 1;
+      if (title != null && title.trim().isNotEmpty) {
+        _pageTitle = title;
+      }
+      if (url != null && url.isNotEmpty) {
+        _currentUrl = url;
+      }
+    });
+  }
+
+  Future<void> _handlePageFinished(String url) async {
+    String? title;
+    String? currentUrl = url;
+    try {
+      await _injectBridge();
+    } catch (error) {
+      debugPrint('Web bridge injection failed: $error');
+    }
+    await _injectNavigationShim();
+    try {
+      title = await _controller.getTitle();
+    } catch (_) {
+      // The page may have navigated again while its title was read.
+    }
+    try {
+      currentUrl = await _controller.currentUrl();
+    } catch (_) {
+      // Keep the URL supplied by the navigation delegate.
+    }
+    _finishLoading(title: title, url: currentUrl);
+  }
+
+  Future<void> _injectNavigationShim() async {
+    try {
+      await _controller.runJavaScript(_navigationShimJs);
+    } catch (_) {
+      // The page may not have a document yet.
+    }
   }
 
   Future<void> _injectBridge() async {
@@ -351,9 +439,22 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
     });
 
     try {
-      final script = await ref
-          .read(adapterRepositoryProvider)
-          .loadAdapterScript(widget.school, widget.adapter, forceRefresh: true);
+      final localScript =
+          widget.localScript ??
+          (('${widget.adapter.importUrl} ${_currentUrl ?? ''}').contains(
+                'hdu.edu.cn',
+              )
+              ? hduAdapterScript
+              : null);
+      final script =
+          localScript ??
+          await ref
+              .read(adapterRepositoryProvider)
+              .loadAdapterScript(
+                widget.school,
+                widget.adapter,
+                forceRefresh: true,
+              );
       await _injectBridge();
       await _controller.runJavaScript(
         "window.currentTableId = 'main';\n$script",
@@ -768,9 +869,64 @@ class _ImportPromptDialogState extends State<_ImportPromptDialog> {
   }
 }
 
+enum _BrowserMode {
+  mobile('手机 Chrome'),
+  desktop('桌面 Chrome'),
+  wechat('微信内置'),
+  system('系统 WebView');
+
+  const _BrowserMode(this.label);
+
+  final String label;
+}
+
+String? _userAgentFor(_BrowserMode mode) {
+  return switch (mode) {
+    _BrowserMode.mobile => _mobileUserAgent,
+    _BrowserMode.desktop => _desktopUserAgent,
+    _BrowserMode.wechat => _wechatUserAgent,
+    _BrowserMode.system => null,
+  };
+}
+
+const String _mobileUserAgent =
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36';
+
 const String _desktopUserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-    '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    '(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
+
+const String _wechatUserAgent =
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36 '
+    'MicroMessenger/8.0.50.2701(0x28003235) WeChat/arm64';
+
+const String _navigationShimJs = r'''
+(function() {
+  if (window.__tidariumNavigationShim) return;
+  window.__tidariumNavigationShim = true;
+
+  var nativeOpen = window.open;
+  window.open = function(url, name, features) {
+    if (url && typeof url === 'string') {
+      window.location.href = url;
+      return window;
+    }
+    return nativeOpen ? nativeOpen.call(window, url, name, features) : null;
+  };
+
+  document.addEventListener('click', function(event) {
+    var target = event.target;
+    var anchor = target && target.closest
+      ? target.closest('a[target="_blank"]')
+      : null;
+    if (!anchor || !anchor.href) return;
+    event.preventDefault();
+    window.location.href = anchor.href;
+  }, true);
+})();
+''';
 
 const String _emptyAdapterPage = '''
 <!doctype html>

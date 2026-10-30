@@ -29,7 +29,8 @@ List<WakeUpSchool> parseWakeUpSchools(String raw) {
   for (final item in data) {
     if (item is! Map) continue;
     final name = _string(item['name']);
-    final url = _normalizeUrl(_string(item['url']));
+    final rawUrl = _schoolUrlOverrides[name] ?? _string(item['url']);
+    final url = _normalizeUrl(rawUrl);
     if (name.isEmpty || url == null) continue;
 
     final sortKey = _string(item['sortKey']);
@@ -89,6 +90,10 @@ int _initialRank(String initial) {
 }
 
 String _string(Object? value) => value?.toString().trim() ?? '';
+
+const Map<String, String> _schoolUrlOverrides = {
+  '杭州电子科技大学': 'https://newjw.hdu.edu.cn/sso/driot4login',
+};
 
 const Set<String> _zhengfangTypes = {'zf'};
 

@@ -32,7 +32,7 @@ Widget _app() {
 
 Future<void> _openTimeSlots(WidgetTester tester) async {
   final entry = find.text('作息时间与默认时长');
-  await tester.ensureVisible(entry);
+  await tester.scrollUntilVisible(entry, 300);
   await tester.pumpAndSettle();
   await tester.tap(entry);
   await tester.pumpAndSettle();
@@ -49,6 +49,18 @@ void main() {
     expect(find.text('时间段列表'), findsOneWidget);
     expect(find.text('时段 1'), findsOneWidget);
     expect(find.text('共 13 个时间段'), findsOneWidget);
+  });
+
+  testWidgets('shows current-table display switches without table management', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('课表管理'), findsNothing);
+    expect(find.text('显示周末'), findsOneWidget);
+    expect(find.text('显示教师'), findsOneWidget);
+    expect(find.text('显示上课地点'), findsOneWidget);
   });
 
   testWidgets('opens the import and export page', (tester) async {

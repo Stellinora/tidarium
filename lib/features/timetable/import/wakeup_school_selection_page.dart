@@ -247,8 +247,11 @@ class _WakeUpSchoolSelectionPageState
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              WebImportPage(school: target.school, adapter: target.adapter),
+          builder: (_) => WebImportPage(
+            school: target.school,
+            adapter: target.adapter,
+            localScript: target.localScript,
+          ),
         ),
       );
     } catch (error) {

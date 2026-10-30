@@ -8,10 +8,20 @@ class TimetableCourseBlock extends StatelessWidget {
     super.key,
     required this.course,
     required this.onTap,
+    this.showTeacher = true,
+    this.showLocation = true,
+    this.courseNameFontSize = 12,
+    this.courseInfoFontSize = 9.5,
+    this.sectionLabelFontSize = 9,
   });
 
   final Course course;
   final VoidCallback onTap;
+  final bool showTeacher;
+  final bool showLocation;
+  final double courseNameFontSize;
+  final double courseInfoFontSize;
+  final double sectionLabelFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +45,7 @@ class TimetableCourseBlock extends StatelessWidget {
             builder: (context, constraints) {
               final compactHeight = constraints.maxHeight < 96;
               final narrow = constraints.maxWidth < 56;
+              final showDetails = showTeacher || showLocation;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +57,7 @@ class TimetableCourseBlock extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.clip,
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: sectionLabelFontSize,
                         height: 1.1,
                         fontWeight: FontWeight.w600,
                         color: foreground.withValues(alpha: 0.75),
@@ -55,35 +66,39 @@ class TimetableCourseBlock extends StatelessWidget {
                   Flexible(
                     child: Text(
                       course.name,
-                      maxLines: compactHeight ? 2 : 3,
+                      maxLines: compactHeight && showDetails
+                          ? 1
+                          : (compactHeight ? 2 : 3),
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: narrow ? 10 : 12,
+                        fontSize: narrow
+                            ? (courseNameFontSize - 2).clamp(7, 32).toDouble()
+                            : courseNameFontSize,
                         height: 1.18,
                         fontWeight: FontWeight.w700,
                         color: foreground,
                       ),
                     ),
                   ),
-                  if (!compactHeight && !narrow && course.teacher.isNotEmpty)
+                  if (showTeacher && course.teacher.isNotEmpty)
                     Text(
                       course.teacher,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 9.5,
-                        height: 1.2,
+                        fontSize: courseInfoFontSize,
+                        height: 1.15,
                         color: foreground.withValues(alpha: 0.85),
                       ),
                     ),
-                  if (!compactHeight && !narrow && course.location.isNotEmpty)
+                  if (showLocation && course.location.isNotEmpty)
                     Text(
                       '@${course.location}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 9.5,
-                        height: 1.2,
+                        fontSize: courseInfoFontSize,
+                        height: 1.15,
                         color: foreground.withValues(alpha: 0.85),
                       ),
                     ),

@@ -57,6 +57,26 @@ void main() {
     expect(target.adapter.adapterName, contains('测试大学'));
   });
 
+  test('uses the local HDU parser and direct new academic entry', () async {
+    final target = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '杭州电子科技大学',
+        initial: 'H',
+        type: 'zf',
+        url: Uri.parse('https://newjw.hdu.edu.cn/sso/driot4login'),
+        family: WakeUpFamily.zhengfang,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+
+    expect(target.school.id, 'hdu_jiaowu');
+    expect(
+      target.adapter.importUrl,
+      'https://newjw.hdu.edu.cn/sso/driot4login',
+    );
+    expect(target.localScript, contains('xskbcx_cxXsgrkb.html'));
+  });
+
   test('rejects unsupported WakeUp schools', () async {
     final school = WakeUpSchool(
       name: '未适配大学',
