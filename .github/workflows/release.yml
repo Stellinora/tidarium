@@ -73,13 +73,20 @@ jobs:
             TAG="v$TAG"
           fi
           VERSION_NAME="${TAG#v}"
-          PUBSPEC_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          PUBSPEC_FULL="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          PUBSPEC_VERSION="${PUBSPEC_FULL%%+*}"
+          PUBSPEC_BUILD="${PUBSPEC_FULL#*+}"
           if [ -n "$PUBSPEC_VERSION" ] && [ "$PUBSPEC_VERSION" != "$VERSION_NAME" ]; then
             echo "::warning::pubspec version is $PUBSPEC_VERSION but the tag is $TAG; the tag value is used."
           fi
+          BUILD_NUMBER="$GITHUB_RUN_NUMBER"
+          if [[ "$PUBSPEC_BUILD" =~ ^[0-9]+$ ]] && [ "$PUBSPEC_BUILD" -gt "$BUILD_NUMBER" ]; then
+            BUILD_NUMBER="$PUBSPEC_BUILD"
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "Releasing $TAG (versionName=$VERSION_NAME, versionCode=$GITHUB_RUN_NUMBER)"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG (versionName=$VERSION_NAME, versionCode=$BUILD_NUMBER)"
 
       - name: Configure release signing
         env:
@@ -114,7 +121,7 @@ jobs:
           flutter build apk --release \
             --target-platform android-arm,android-arm64 \
             --build-name="${{ steps.version.outputs.name }}" \
-            --build-number="${{ github.run_number }}"
+            --build-number="${{ steps.version.outputs.build_number }}"
 
       - name: Prepare release files
         run: |
