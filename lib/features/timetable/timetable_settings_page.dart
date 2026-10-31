@@ -104,14 +104,62 @@ class TimetableSettingsPage extends ConsumerWidget {
               controller.updateConfig(config.copyWith(showTeacher: value));
             },
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.place_outlined),
-            title: const Text('显示上课地点'),
-            value: config.showLocation,
-            onChanged: (value) {
-              controller.updateConfig(config.copyWith(showLocation: value));
-            },
+          ListTile(
+            leading: const Icon(Icons.place_outlined),
+            title: const Text('上课地点'),
+            trailing: DropdownButton<LocationDisplayMode?>(
+              value: config.showLocation ? config.locationDisplayMode : null,
+              underline: const SizedBox.shrink(),
+              items: const [
+                DropdownMenuItem<LocationDisplayMode?>(
+                  value: null,
+                  child: Text('不显示'),
+                ),
+                DropdownMenuItem<LocationDisplayMode?>(
+                  value: LocationDisplayMode.full,
+                  child: Text('显示全部'),
+                ),
+                DropdownMenuItem<LocationDisplayMode?>(
+                  value: LocationDisplayMode.singleLine,
+                  child: Text('单行'),
+                ),
+                DropdownMenuItem<LocationDisplayMode?>(
+                  value: LocationDisplayMode.structured,
+                  child: Text('分层（Beta）'),
+                ),
+              ],
+              onChanged: (value) async {
+                if (value == null) {
+                  controller.updateConfig(config.copyWith(showLocation: false));
+                  return;
+                }
+                if (value == LocationDisplayMode.structured &&
+                    config.locationDisplayMode !=
+                        LocationDisplayMode.structured) {
+                  final confirmed = await _confirmBetaLocation(context);
+                  if (confirmed != true || !context.mounted) return;
+                }
+                controller.updateConfig(
+                  config.copyWith(
+                    showLocation: true,
+                    locationDisplayMode: value,
+                  ),
+                );
+              },
+            ),
           ),
+          if (config.showLocation &&
+              config.locationDisplayMode == LocationDisplayMode.structured)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+              child: Text(
+                'Beta：分层地点只识别常见楼栋格式，无法识别时会原样显示；'
+                '部分特殊格式可能被拆分或省略，请确认地点无误。',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           const Divider(),
           _SectionHeader(title: '界面', theme: theme),
           ListTile(
@@ -170,6 +218,30 @@ class TimetableSettingsPage extends ConsumerWidget {
               '删除应用数据会一并清除所有课表。',
               style: TextStyle(fontSize: 12),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _confirmBetaLocation(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('分层地点（Beta）'),
+        content: const Text(
+          '分层显示目前只覆盖常见楼栋格式。'
+          '无法识别的地址会原样显示；特殊格式可能被拆分或省略。\n\n'
+          '后续会通过端侧模型增强识别，启用前请确认课程地点显示正确。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('仍然启用'),
           ),
         ],
       ),

@@ -113,8 +113,10 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 16,
-        title: InkWell(
+        centerTitle: true,
+        leadingWidth: 120,
+        titleSpacing: 0,
+        leading: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: () => _openWeekSelector(
             context,
@@ -124,41 +126,15 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
             selectedWeek: week,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.only(left: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Flexible(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.sizeOf(context).width * 0.62,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '第 $week 周',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontSize: config.weekTitleFontSize,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        Text(
-                          '${config.name} · ${_weekRangeLabel(config.semesterStart, week, config.firstWeekday)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontSize: config.dateFontSize,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
+                Text(
+                  '第 $week 周',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontSize: config.weekTitleFontSize,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down),
@@ -166,14 +142,28 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
             ),
           ),
         ),
-        actions: [
-          if (!isCurrentWeek)
-            IconButton(
-              tooltip: '回到本周',
-              onPressed: () =>
-                  ref.read(selectedWeekProvider.notifier).followToday(),
-              icon: const Icon(Icons.today_outlined),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              config.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
+            Text(
+              _weekRangeLabel(config.semesterStart, week, config.firstWeekday),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontSize: config.dateFontSize,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
           IconButton(
             tooltip: '课表管理',
             onPressed: () => _openTimetableManager(context),

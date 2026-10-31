@@ -60,7 +60,8 @@ void main() {
     expect(find.text('课表管理'), findsNothing);
     expect(find.text('显示周末'), findsOneWidget);
     expect(find.text('显示教师'), findsOneWidget);
-    expect(find.text('显示上课地点'), findsOneWidget);
+    expect(find.text('上课地点'), findsOneWidget);
+    expect(find.text('显示全部'), findsOneWidget);
   });
 
   testWidgets('opens the import and export page', (tester) async {

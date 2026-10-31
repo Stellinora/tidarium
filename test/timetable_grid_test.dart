@@ -33,6 +33,7 @@ Widget _grid({
   required List<Course> courses,
   bool showTeacher = true,
   bool showLocation = true,
+  LocationDisplayMode locationDisplayMode = LocationDisplayMode.full,
   bool showWeekends = false,
   double width = 500,
 }) {
@@ -49,6 +50,7 @@ Widget _grid({
             showWeekends: showWeekends,
             showTeacher: showTeacher,
             showLocation: showLocation,
+            locationDisplayMode: locationDisplayMode,
           ),
           timeSlots: defaultTimeSlots,
           blocks: mergeCoursesForWeek(courses, 1),
@@ -152,6 +154,30 @@ void main() {
 
     expect(find.text('李老师'), findsOneWidget);
     expect(find.text('@B202'), findsOneWidget);
+  });
+
+  testWidgets('renders a structured location in three parts', (tester) async {
+    final courses = [
+      _course(
+        id: 'structured',
+        name: '实验课',
+        day: 1,
+        teacher: '赵老师',
+        location: '第1教研楼东301',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      _grid(
+        courses: courses,
+        locationDisplayMode: LocationDisplayMode.structured,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('第1教研楼'), findsOneWidget);
+    expect(find.text('东'), findsOneWidget);
+    expect(find.text('301'), findsOneWidget);
   });
 
   testWidgets('shows details in a narrow seven-day grid', (tester) async {

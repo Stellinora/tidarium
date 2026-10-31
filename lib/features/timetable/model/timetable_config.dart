@@ -1,5 +1,7 @@
 import '../timetable_time.dart';
 
+enum LocationDisplayMode { full, singleLine, structured }
+
 class TimetableConfig {
   const TimetableConfig({
     this.name = '我的课表',
@@ -8,6 +10,7 @@ class TimetableConfig {
     this.showWeekends = false,
     this.showTeacher = true,
     this.showLocation = true,
+    this.locationDisplayMode = LocationDisplayMode.full,
     this.courseNameFontSize = 12,
     this.courseInfoFontSize = 9.5,
     this.sectionLabelFontSize = 9,
@@ -32,6 +35,7 @@ class TimetableConfig {
       showWeekends: json['showWeekends'] as bool? ?? false,
       showTeacher: json['showTeacher'] as bool? ?? true,
       showLocation: json['showLocation'] as bool? ?? true,
+      locationDisplayMode: _locationMode(json['locationDisplayMode']),
       courseNameFontSize: _fontSize(json['courseNameFontSize'], 12),
       courseInfoFontSize: _fontSize(json['courseInfoFontSize'], 9.5),
       sectionLabelFontSize: _fontSize(json['sectionLabelFontSize'], 9),
@@ -60,6 +64,7 @@ class TimetableConfig {
   final bool showWeekends;
   final bool showTeacher;
   final bool showLocation;
+  final LocationDisplayMode locationDisplayMode;
   final double courseNameFontSize;
   final double courseInfoFontSize;
   final double sectionLabelFontSize;
@@ -82,6 +87,7 @@ class TimetableConfig {
     bool? showWeekends,
     bool? showTeacher,
     bool? showLocation,
+    LocationDisplayMode? locationDisplayMode,
     double? courseNameFontSize,
     double? courseInfoFontSize,
     double? sectionLabelFontSize,
@@ -105,6 +111,7 @@ class TimetableConfig {
       showWeekends: showWeekends ?? this.showWeekends,
       showTeacher: showTeacher ?? this.showTeacher,
       showLocation: showLocation ?? this.showLocation,
+      locationDisplayMode: locationDisplayMode ?? this.locationDisplayMode,
       courseNameFontSize: courseNameFontSize ?? this.courseNameFontSize,
       courseInfoFontSize: courseInfoFontSize ?? this.courseInfoFontSize,
       sectionLabelFontSize: sectionLabelFontSize ?? this.sectionLabelFontSize,
@@ -136,6 +143,7 @@ class TimetableConfig {
       'showWeekends': showWeekends,
       'showTeacher': showTeacher,
       'showLocation': showLocation,
+      'locationDisplayMode': locationDisplayMode.name,
       'courseNameFontSize': courseNameFontSize,
       'courseInfoFontSize': courseInfoFontSize,
       'sectionLabelFontSize': sectionLabelFontSize,
@@ -156,4 +164,12 @@ class TimetableConfig {
 
 double _fontSize(Object? value, double fallback) {
   return ((value as num?)?.toDouble() ?? fallback).clamp(7.0, 32.0).toDouble();
+}
+
+LocationDisplayMode _locationMode(Object? value) {
+  return switch (value?.toString()) {
+    'singleLine' => LocationDisplayMode.singleLine,
+    'structured' => LocationDisplayMode.structured,
+    _ => LocationDisplayMode.full,
+  };
 }

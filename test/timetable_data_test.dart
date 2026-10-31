@@ -32,6 +32,7 @@ void main() {
           showWeekends: true,
           showTeacher: false,
           showLocation: false,
+          locationDisplayMode: LocationDisplayMode.structured,
           courseNameFontSize: 15,
           courseInfoFontSize: 10.5,
           sectionLabelFontSize: 8,
@@ -57,6 +58,10 @@ void main() {
       expect(restored.config.showWeekends, isTrue);
       expect(restored.config.showTeacher, isFalse);
       expect(restored.config.showLocation, isFalse);
+      expect(
+        restored.config.locationDisplayMode,
+        LocationDisplayMode.structured,
+      );
       expect(restored.config.courseNameFontSize, 15);
       expect(restored.config.courseInfoFontSize, 10.5);
       expect(restored.config.sectionLabelFontSize, 8);
@@ -87,6 +92,7 @@ void main() {
       expect(data.config.totalWeeks, 20);
       expect(data.config.showTeacher, isTrue);
       expect(data.config.showLocation, isTrue);
+      expect(data.config.locationDisplayMode, LocationDisplayMode.full);
       expect(data.config.courseNameFontSize, 12);
       expect(data.config.courseInfoFontSize, 9.5);
       expect(data.config.backgroundImagePath, isNull);

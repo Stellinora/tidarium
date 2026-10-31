@@ -145,6 +145,8 @@ class TimetableGrid extends StatelessWidget {
                                     course: block.course,
                                     showTeacher: config.showTeacher,
                                     showLocation: config.showLocation,
+                                    locationDisplayMode:
+                                        config.locationDisplayMode,
                                     courseNameFontSize:
                                         config.courseNameFontSize,
                                     courseInfoFontSize:
