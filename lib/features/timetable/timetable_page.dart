@@ -114,7 +114,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        leadingWidth: 120,
+        leadingWidth: 136,
         titleSpacing: 0,
         leading: InkWell(
           borderRadius: BorderRadius.circular(10),
