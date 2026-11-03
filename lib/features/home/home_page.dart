@@ -28,6 +28,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final agenda = ref.watch(todayAgendaProvider);
     final config = ref.watch(timetableProvider).config;
+    final hasTodayCourses =
+        agenda.asData?.value.items.any((item) => item.course != null) ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -42,11 +44,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addCourse,
-        icon: const Icon(Icons.add),
-        label: const Text('添加课程'),
-      ),
+      floatingActionButton: hasTodayCourses
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _addCourse,
+              icon: const Icon(Icons.add),
+              label: const Text('添加课程'),
+            ),
       body: SafeArea(
         child: agenda.when(
           data: (data) => _buildAgenda(context, data, config),
