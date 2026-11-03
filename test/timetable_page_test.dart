@@ -133,6 +133,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byTooltip('更多'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('添加课程'));
     await tester.pumpAndSettle();
 
@@ -184,6 +186,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('还没有课程'), findsOneWidget);
-    expect(find.text('添加课程'), findsWidgets);
+    expect(find.byType(FloatingActionButton), findsNothing);
   });
 }

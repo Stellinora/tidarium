@@ -224,11 +224,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addCourse(context, ref, day: defaultDay, section: 1),
-        icon: const Icon(Icons.add),
-        label: const Text('添加课程'),
-      ),
+
       body: Stack(
         fit: StackFit.expand,
         children: [
