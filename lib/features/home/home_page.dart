@@ -28,8 +28,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final agenda = ref.watch(todayAgendaProvider);
     final config = ref.watch(timetableProvider).config;
-    final hasTodayCourses =
-        agenda.asData?.value.items.any((item) => item.course != null) ?? false;
+    final hasTimetable = ref
+        .watch(timetableLibraryProvider)
+        .timetables
+        .isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -44,7 +46,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: hasTodayCourses
+      floatingActionButton: hasTimetable
           ? null
           : FloatingActionButton.extended(
               onPressed: _addCourse,

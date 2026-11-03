@@ -75,35 +75,4 @@ void main() {
     expect(find.text('添加课程'), findsNothing);
     expect(find.text('明天与更多日程'), findsOneWidget);
   });
-
-  testWidgets('shows add course button when today has no course', (
-    tester,
-  ) async {
-    final date = DateTime(2026, 9, 7);
-    final agenda = TodayAgenda(
-      date: date,
-      status: TodayAgendaStatus.normal,
-      weekNumber: 1,
-      tableName: '我的课表',
-      items: const [],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          initialTimetableProvider.overrideWithValue(
-            TimetableData.initial(now: date),
-          ),
-          todayAgendaProvider.overrideWith((ref) async => agenda),
-        ],
-        child: MaterialApp(
-          theme: buildTidariumTheme(Brightness.light),
-          home: const HomePage(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('添加课程'), findsOneWidget);
-  });
 }
