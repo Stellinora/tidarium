@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -206,6 +207,10 @@ class TimetableSettingsPage extends ConsumerWidget {
                 ),
               ),
             ),
+          if (config.reminderEnabled &&
+              !kIsWeb &&
+              defaultTargetPlatform == TargetPlatform.android)
+            const _ReminderSystemSection(),
           const Divider(),
           _SectionHeader(title: '界面', theme: theme),
           ListTile(
@@ -298,6 +303,22 @@ class TimetableSettingsPage extends ConsumerWidget {
 
       await controller.updateConfig(
         ref.read(timetableProvider).config.copyWith(reminderEnabled: true),
+      );
+
+      if (!context.mounted ||
+          kIsWeb ||
+          defaultTargetPlatform != TargetPlatform.android) {
+        return;
+      }
+      final service = ref.read(courseReminderServiceProvider);
+      final exact = await service.canScheduleExactAlarms();
+      final battery = await service.isIgnoringBatteryOptimizations();
+      if (exact && battery) return;
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('提醒已开启。建议在下方「提醒可靠性」中开启精确闹钟并忽略电池优化，避免提醒延后。'),
+        ),
       );
     } catch (error) {
       if (!context.mounted) return;
@@ -421,6 +442,127 @@ class TimetableSettingsPage extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('课程已清空')));
+  }
+}
+
+class _ReminderSystemSection extends ConsumerStatefulWidget {
+  const _ReminderSystemSection();
+
+  @override
+  ConsumerState<_ReminderSystemSection> createState() =>
+      _ReminderSystemSectionState();
+}
+
+class _ReminderSystemSectionState extends ConsumerState<_ReminderSystemSection>
+    with WidgetsBindingObserver {
+  bool? _exactAlarms;
+  bool? _ignoringBattery;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refresh();
+    }
+  }
+
+  Future<void> _refresh() async {
+    final service = ref.read(courseReminderServiceProvider);
+    try {
+      final results = await Future.wait([
+        service.canScheduleExactAlarms(),
+        service.isIgnoringBatteryOptimizations(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _exactAlarms = results[0];
+        _ignoringBattery = results[1];
+      });
+    } catch (error) {
+      debugPrint('Unable to read reminder system status: $error');
+    }
+  }
+
+  Future<void> _openExactAlarmSettings() async {
+    await ref
+        .read(courseReminderServiceProvider)
+        .requestExactAlarmsPermission();
+    await _refresh();
+  }
+
+  Future<void> _requestBatteryExemption() async {
+    await ref
+        .read(courseReminderServiceProvider)
+        .requestIgnoreBatteryOptimizations();
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final exact = _exactAlarms;
+    final battery = _ignoringBattery;
+
+    return Column(
+      children: [
+        _SectionHeader(title: '提醒可靠性', theme: theme),
+        ListTile(
+          leading: const Icon(Icons.alarm_outlined),
+          title: const Text('精确闹钟'),
+          subtitle: Text(
+            exact == null
+                ? '正在检测…'
+                : exact
+                ? '已开启，提醒按设定时间送达'
+                : '未开启，系统可能延后提醒',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _openExactAlarmSettings,
+        ),
+        ListTile(
+          leading: const Icon(Icons.battery_saver_outlined),
+          title: const Text('电池优化'),
+          subtitle: Text(
+            battery == null
+                ? '正在检测…'
+                : battery
+                ? '已忽略电池优化'
+                : '未加入白名单，深度省电可能延迟提醒',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _requestBatteryExemption,
+        ),
+        ListTile(
+          leading: const Icon(Icons.memory_outlined),
+          title: const Text('自启动与后台运行'),
+          subtitle: const Text('部分厂商会拦截开机恢复，建议允许自启动'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () =>
+              ref.read(courseReminderServiceProvider).openAutostartSettings(),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+          child: Text(
+            '开机后提醒由系统恢复；被“强行停止”或厂商清理后台后需要重新打开 App。',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

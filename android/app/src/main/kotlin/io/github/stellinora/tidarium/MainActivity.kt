@@ -1,10 +1,18 @@
 package io.github.stellinora.tidarium
 
 import android.app.Activity
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private var pendingPickResult: MethodChannel.Result? = null
@@ -39,6 +47,141 @@ class MainActivity : FlutterActivity() {
                 )
                 else -> result.notImplemented()
             }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            REMINDER_CHANNEL_NAME,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isIgnoringBatteryOptimizations" ->
+                    result.success(isIgnoringBatteryOptimizations())
+                "requestIgnoreBatteryOptimizations" ->
+                    result.success(requestIgnoreBatteryOptimizations())
+                "openAutostartSettings" -> {
+                    openAutostartSettings()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    private fun requestIgnoreBatteryOptimizations(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        if (isIgnoringBatteryOptimizations()) return true
+
+        return try {
+            startActivity(
+                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                    .setData(Uri.parse("package:$packageName")),
+            )
+            true
+        } catch (_: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (_: Exception) {
+                openAppDetails()
+            }
+            false
+        }
+    }
+
+    private fun openAutostartSettings() {
+        val manufacturer = Build.MANUFACTURER.lowercase(Locale.ROOT)
+        val candidates = when {
+            manufacturer.contains("xiaomi") || manufacturer.contains("redmi") -> listOf(
+                ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.autostart.AutoStartManagementActivity",
+                ),
+                ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.powercenter.PowerSettings",
+                ),
+            )
+            manufacturer.contains("huawei") || manufacturer.contains("honor") -> listOf(
+                ComponentName(
+                    "com.huawei.systemmanager",
+                    "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+                ),
+                ComponentName(
+                    "com.huawei.systemmanager",
+                    "com.huawei.systemmanager.optimize.process.ProtectActivity",
+                ),
+            )
+            manufacturer.contains("oppo") ||
+                manufacturer.contains("realme") ||
+                manufacturer.contains("oneplus") -> listOf(
+                ComponentName(
+                    "com.coloros.safecenter",
+                    "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+                ),
+                ComponentName(
+                    "com.oppo.safe",
+                    "com.oppo.safe.permission.startup.StartupAppListActivity",
+                ),
+                ComponentName(
+                    "com.oneplus.security",
+                    "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity",
+                ),
+            )
+            manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> listOf(
+                ComponentName(
+                    "com.vivo.permissionmanager",
+                    "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+                ),
+                ComponentName(
+                    "com.iqoo.secure",
+                    "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
+                ),
+            )
+            manufacturer.contains("meizu") -> listOf(
+                ComponentName(
+                    "com.meizu.safe",
+                    "com.meizu.safe.permission.SmartBGActivity",
+                ),
+            )
+            manufacturer.contains("samsung") -> listOf(
+                ComponentName(
+                    "com.samsung.android.lool",
+                    "com.samsung.android.sm.ui.battery.BatteryActivity",
+                ),
+            )
+            else -> emptyList()
+        }
+
+        for (component in candidates) {
+            val intent = Intent()
+                .setComponent(component)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) != null) {
+                try {
+                    startActivity(intent)
+                    return
+                } catch (_: Exception) {
+                    // Try the next candidate.
+                }
+            }
+        }
+
+        openAppDetails()
+    }
+
+    private fun openAppDetails() {
+        try {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName")),
+            )
+        } catch (_: Exception) {
+            // Nothing else we can open.
         }
     }
 
@@ -159,6 +302,8 @@ class MainActivity : FlutterActivity() {
         private const val CHANNEL_NAME = "io.github.stellinora.tidarium/files"
         private const val TIMEZONE_CHANNEL_NAME =
             "io.github.stellinora.tidarium/timezone"
+        private const val REMINDER_CHANNEL_NAME =
+            "io.github.stellinora.tidarium/reminders"
         private const val REQUEST_PICK_ICS = 4101
         private const val REQUEST_SAVE_ICS = 4102
     }

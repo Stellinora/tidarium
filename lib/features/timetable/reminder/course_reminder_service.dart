@@ -18,6 +18,9 @@ class CourseReminderService {
   static const _timezoneChannel = MethodChannel(
     'io.github.stellinora.tidarium/timezone',
   );
+  static const _supportChannel = MethodChannel(
+    'io.github.stellinora.tidarium/reminders',
+  );
 
   final FlutterLocalNotificationsPlugin _plugin;
   var _initialized = false;
@@ -79,12 +82,75 @@ class CourseReminderService {
         await android.requestNotificationsPermission() ?? true;
     if (!notificationsGranted) return false;
 
+    await requestExactAlarmsPermission();
+    return true;
+  }
+
+  Future<bool> canScheduleExactAlarms() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     try {
-      await android.requestExactAlarmsPermission();
+      return await android?.canScheduleExactNotifications() ?? false;
+    } on MissingPluginException {
+      return false;
+    } catch (error) {
+      debugPrint('Unable to read exact alarm status: $error');
+      return false;
+    }
+  }
+
+  Future<bool> requestExactAlarmsPermission() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return true;
+    try {
+      return await android.requestExactAlarmsPermission() ?? false;
     } catch (error) {
       debugPrint('Unable to request exact alarm permission: $error');
+      return false;
     }
-    return true;
+  }
+
+  Future<bool> isIgnoringBatteryOptimizations() async {
+    try {
+      return await _supportChannel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } catch (error) {
+      debugPrint('Unable to read battery optimization status: $error');
+      return false;
+    }
+  }
+
+  Future<bool> requestIgnoreBatteryOptimizations() async {
+    try {
+      return await _supportChannel.invokeMethod<bool>(
+            'requestIgnoreBatteryOptimizations',
+          ) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } catch (error) {
+      debugPrint('Unable to request battery optimization exemption: $error');
+      return false;
+    }
+  }
+
+  Future<void> openAutostartSettings() async {
+    try {
+      await _supportChannel.invokeMethod<void>('openAutostartSettings');
+    } on MissingPluginException {
+      return;
+    } catch (error) {
+      debugPrint('Unable to open autostart settings: $error');
+    }
   }
 
   Future<int> schedule(
