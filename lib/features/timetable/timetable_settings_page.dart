@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'model/timetable_config.dart';
+import 'reminder/course_reminder_coordinator.dart';
 import 'time_slot_settings_page.dart';
 import 'timetable_io_page.dart';
 import 'timetable_providers.dart';
@@ -161,6 +162,51 @@ class TimetableSettingsPage extends ConsumerWidget {
               ),
             ),
           const Divider(),
+          _SectionHeader(title: '提醒', theme: theme),
+          SwitchListTile(
+            secondary: const Icon(Icons.notifications_active_outlined),
+            title: const Text('上课提醒'),
+            subtitle: Text(
+              config.reminderEnabled ? '已为当前课表安排未来 21 天的课程提醒' : '课程开始前发送本机通知',
+            ),
+            value: config.reminderEnabled,
+            onChanged: (value) => _setReminderEnabled(context, ref, value),
+          ),
+          if (config.reminderEnabled)
+            ListTile(
+              leading: const Icon(Icons.snooze_outlined),
+              title: const Text('提前时间'),
+              trailing: DropdownButton<int>(
+                value: config.reminderMinutesBefore,
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 0, child: Text('准时')),
+                  DropdownMenuItem(value: 5, child: Text('提前 5 分钟')),
+                  DropdownMenuItem(value: 10, child: Text('提前 10 分钟')),
+                  DropdownMenuItem(value: 15, child: Text('提前 15 分钟')),
+                  DropdownMenuItem(value: 30, child: Text('提前 30 分钟')),
+                  DropdownMenuItem(value: 60, child: Text('提前 60 分钟')),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  controller.updateConfig(
+                    config.copyWith(reminderMinutesBefore: value),
+                  );
+                },
+              ),
+            ),
+          if (config.reminderEnabled)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+              child: Text(
+                '提醒仅使用当前课表。系统未允许精确闹钟时会改用近似时间；'
+                '更换课表或修改课程后会自动重新安排。',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          const Divider(),
           _SectionHeader(title: '界面', theme: theme),
           ListTile(
             leading: const Icon(Icons.palette_outlined),
@@ -222,6 +268,42 @@ class TimetableSettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _setReminderEnabled(
+    BuildContext context,
+    WidgetRef ref,
+    bool enabled,
+  ) async {
+    final controller = ref.read(timetableLibraryProvider.notifier);
+
+    if (!enabled) {
+      await controller.updateConfig(
+        ref.read(timetableProvider).config.copyWith(reminderEnabled: false),
+      );
+      return;
+    }
+
+    try {
+      final granted = await ref
+          .read(courseReminderServiceProvider)
+          .requestPermissions();
+      if (!granted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('未获得通知权限，无法开启上课提醒。')));
+        }
+        return;
+      }
+
+      await controller.updateConfig(
+        ref.read(timetableProvider).config.copyWith(reminderEnabled: true),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('上课提醒开启失败：$error')));
+    }
   }
 
   Future<bool?> _confirmBetaLocation(BuildContext context) {

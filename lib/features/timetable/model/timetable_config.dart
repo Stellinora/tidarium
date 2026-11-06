@@ -25,6 +25,8 @@ class TimetableConfig {
     this.firstWeekday = DateTime.monday,
     this.defaultClassMinutes = 45,
     this.defaultBreakMinutes = 10,
+    this.reminderEnabled = false,
+    this.reminderMinutesBefore = 10,
   });
 
   factory TimetableConfig.fromJson(Map<String, Object?> json) {
@@ -55,6 +57,12 @@ class TimetableConfig {
           ((json['defaultClassMinutes'] as num?)?.toInt() ?? 45).clamp(1, 600),
       defaultBreakMinutes:
           ((json['defaultBreakMinutes'] as num?)?.toInt() ?? 10).clamp(0, 600),
+      reminderEnabled: json['reminderEnabled'] as bool? ?? false,
+      reminderMinutesBefore:
+          ((json['reminderMinutesBefore'] as num?)?.toInt() ?? 10).clamp(
+            0,
+            180,
+          ),
     );
   }
 
@@ -79,6 +87,8 @@ class TimetableConfig {
   final int firstWeekday;
   final int defaultClassMinutes;
   final int defaultBreakMinutes;
+  final bool reminderEnabled;
+  final int reminderMinutesBefore;
 
   TimetableConfig copyWith({
     String? name,
@@ -103,6 +113,8 @@ class TimetableConfig {
     int? firstWeekday,
     int? defaultClassMinutes,
     int? defaultBreakMinutes,
+    bool? reminderEnabled,
+    int? reminderMinutesBefore,
   }) {
     return TimetableConfig(
       name: name ?? this.name,
@@ -130,6 +142,9 @@ class TimetableConfig {
       firstWeekday: firstWeekday ?? this.firstWeekday,
       defaultClassMinutes: defaultClassMinutes ?? this.defaultClassMinutes,
       defaultBreakMinutes: defaultBreakMinutes ?? this.defaultBreakMinutes,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      reminderMinutesBefore:
+          reminderMinutesBefore ?? this.reminderMinutesBefore,
     );
   }
 
@@ -158,6 +173,8 @@ class TimetableConfig {
       'firstWeekday': firstWeekday,
       'defaultClassMinutes': defaultClassMinutes,
       'defaultBreakMinutes': defaultBreakMinutes,
+      'reminderEnabled': reminderEnabled,
+      'reminderMinutesBefore': reminderMinutesBefore,
     };
   }
 }

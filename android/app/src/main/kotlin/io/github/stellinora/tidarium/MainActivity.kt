@@ -28,6 +28,18 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            TIMEZONE_CHANNEL_NAME,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getLocalTimezone" -> result.success(
+                    java.util.TimeZone.getDefault().id,
+                )
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun pickIcs(result: MethodChannel.Result) {
@@ -145,6 +157,8 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL_NAME = "io.github.stellinora.tidarium/files"
+        private const val TIMEZONE_CHANNEL_NAME =
+            "io.github.stellinora.tidarium/timezone"
         private const val REQUEST_PICK_ICS = 4101
         private const val REQUEST_SAVE_ICS = 4102
     }
