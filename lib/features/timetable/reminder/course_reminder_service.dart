@@ -27,12 +27,16 @@ class CourseReminderService {
 
     tz_data.initializeTimeZones();
     try {
-      final timezone = await _timezoneChannel.invokeMethod<String>(
+      final reported = await _timezoneChannel.invokeMethod<String>(
         'getLocalTimezone',
       );
-      if (timezone == null || timezone.isEmpty) {
+      if (reported == null || reported.isEmpty) {
         throw StateError('The device did not report a timezone.');
       }
+      final timezone = switch (reported) {
+        'GMT' || 'UTC' => 'Etc/GMT',
+        _ => reported,
+      };
       tz.setLocalLocation(tz.getLocation(timezone));
     } catch (error) {
       debugPrint('Unable to resolve local timezone: $error');
