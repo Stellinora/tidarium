@@ -73,9 +73,8 @@ void main() {
     await tester.tap(find.text('课表导入与导出'));
     await tester.pumpAndSettle();
 
-    expect(find.text('拾光学校库'), findsOneWidget);
-    expect(find.text('通用教务'), findsOneWidget);
-    expect(find.text('WakeUp 学校库'), findsOneWidget);
+    expect(find.text('搜索学校'), findsOneWidget);
+    expect(find.text('通用教务系统'), findsOneWidget);
     expect(find.text('导出 ICS'), findsOneWidget);
     expect(find.text('导入 ICS'), findsOneWidget);
   });

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'import/school_selection_page.dart';
-import 'import/wakeup_school_selection_page.dart';
+import 'import/unified_school_selection_page.dart';
 import 'io/ics_exporter.dart';
 import 'io/ics_importer.dart';
 import 'io/timetable_file_service.dart';
@@ -28,22 +28,20 @@ class TimetableIoPage extends ConsumerWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.school_outlined),
-                  title: const Text('拾光学校库'),
-                  subtitle: const Text('按学校选择拾光适配器'),
+                  leading: const Icon(Icons.search),
+                  title: const Text('搜索学校'),
+                  subtitle: const Text('按学校名称查找并匹配可用适配器'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const SchoolSelectionPage(
-                        mode: SchoolLibraryMode.shiguang,
-                      ),
+                      builder: (_) => const UnifiedSchoolSelectionPage(),
                     ),
                   ),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.account_balance_outlined),
-                  title: const Text('通用教务'),
+                  title: const Text('通用教务系统'),
                   subtitle: const Text('正方、青果、URP、超星'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
@@ -54,25 +52,13 @@ class TimetableIoPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.menu_book_outlined),
-                  title: const Text('WakeUp 学校库'),
-                  subtitle: const Text('1,941 所学校 · 通用家族自动映射'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const WakeUpSchoolSelectionPage(),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
             child: Text(
-              'WakeUp / 星链分享码适配器在「拾光学校库」的通用工具中。',
+              '搜索学校会自动匹配可用适配器；找不到时可改用通用教务系统手动导入。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

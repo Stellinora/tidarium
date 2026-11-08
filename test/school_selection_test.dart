@@ -95,7 +95,7 @@ void main() {
     await tester.pumpWidget(_app(mode: SchoolLibraryMode.generic));
     await tester.pumpAndSettle();
 
-    expect(find.text('通用教务'), findsOneWidget);
+    expect(find.text('通用教务系统'), findsOneWidget);
     expect(find.text('正方教务-通用教务'), findsOneWidget);
     expect(find.text('超星教务系统-通用教务'), findsOneWidget);
     expect(find.text('测试大学'), findsNothing);

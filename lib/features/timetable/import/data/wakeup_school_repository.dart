@@ -93,6 +93,18 @@ String _string(Object? value) => value?.toString().trim() ?? '';
 
 const Map<String, String> _schoolUrlOverrides = {
   '杭州电子科技大学': 'https://newjw.hdu.edu.cn/sso/driot4login',
+  '绍兴文理学院': 'https://jwxt.usx.edu.cn/jwglxt/xtgl/login_slogin.html',
+  '绍兴理工学院': 'https://jwxt.zsit.edu.cn/jwglxt/xtgl/login_slogin.html',
+  '绍兴文理学院元培学院': 'https://jwxt.zsit.edu.cn/jwglxt/xtgl/login_slogin.html',
+  '武汉科技大学': 'https://bkjx.wust.edu.cn/jsxsd/',
+  '武汉商学院': 'https://jw.wbu.edu.cn/jsxsd/',
+  '西安财经大学': 'http://jiaowu.xaufe.edu.cn/',
+  '青岛滨海学院': 'http://jwgl.qdbhu.edu.cn/',
+  '湖南信息学院': 'https://jwgl.hnuit.edu.cn/',
+  '山东理工大学': 'https://jw.sdut.edu.cn/jwglxt/',
+  '汉口学院': 'http://113.57.132.2:83/xtgl/login_slogin.html',
+  '湖南生物机电职业技术学院': 'http://jwxt.hnbemc.cn:81/sso.jsp',
+  '浙江大学': 'https://zdbk.zju.edu.cn/jwglxt/xtgl/login_slogin.html',
 };
 
 const Set<String> _zhengfangTypes = {'zf'};

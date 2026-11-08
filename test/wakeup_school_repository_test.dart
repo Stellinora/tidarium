@@ -139,6 +139,70 @@ void main() {
     );
   });
 
+  test('uses the current Shaoxing University academic entries', () {
+    final schools = parseWakeUpSchools(
+      jsonEncode({
+        'data': [
+          {
+            'name': '绍兴文理学院',
+            'sortKey': 'S',
+            'type': 'zf',
+            'url': 'http://jw.usx.edu.cn/',
+          },
+          {
+            'name': '绍兴文理学院元培学院',
+            'sortKey': 'S',
+            'type': 'zf',
+            'url': 'http://www.ypc.edu.cn/jwgl.htm',
+          },
+        ],
+      }),
+    );
+
+    final named = {for (final school in schools) school.name: school};
+    expect(
+      named['绍兴文理学院']?.url.toString(),
+      'https://jwxt.usx.edu.cn/jwglxt/xtgl/login_slogin.html',
+    );
+    expect(
+      named['绍兴文理学院元培学院']?.url.toString(),
+      'https://jwxt.zsit.edu.cn/jwglxt/xtgl/login_slogin.html',
+    );
+  });
+
+  test('uses verified current academic URLs', () {
+    const overrides = {
+      '绍兴理工学院':
+          'https://jwxt.zsit.edu.cn/jwglxt/xtgl/login_slogin.html',
+      '武汉科技大学': 'https://bkjx.wust.edu.cn/jsxsd/',
+      '武汉商学院': 'https://jw.wbu.edu.cn/jsxsd/',
+      '西安财经大学': 'http://jiaowu.xaufe.edu.cn/',
+      '青岛滨海学院': 'http://jwgl.qdbhu.edu.cn/',
+      '湖南信息学院': 'https://jwgl.hnuit.edu.cn/',
+      '山东理工大学': 'https://jw.sdut.edu.cn/jwglxt/',
+      '汉口学院': 'http://113.57.132.2:83/xtgl/login_slogin.html',
+      '湖南生物机电职业技术学院': 'http://jwxt.hnbemc.cn:81/sso.jsp',
+      '浙江大学': 'https://zdbk.zju.edu.cn/jwglxt/xtgl/login_slogin.html',
+    };
+
+    final schools = parseWakeUpSchools(
+      jsonEncode({
+        'data': [
+          for (final name in overrides.keys)
+            {
+              'name': name,
+              'sortKey': 'W',
+              'type': 'zf',
+              'url': 'https://stale.example/',
+            },
+        ],
+      }),
+    );
+
+    final actual = {for (final school in schools) school.name: school.url.toString()};
+    expect(actual, overrides);
+  });
+
   test('loads the bundled school catalog', () async {
     final schools = await WakeUpSchoolRepository().loadSchools();
 

@@ -82,7 +82,7 @@ class _SchoolSelectionPageState extends ConsumerState<SchoolSelectionPage> {
     return switch (widget.mode) {
       SchoolLibraryMode.all => '选择学校',
       SchoolLibraryMode.shiguang => '拾光学校库',
-      SchoolLibraryMode.generic => '通用教务',
+      SchoolLibraryMode.generic => '通用教务系统',
     };
   }
 

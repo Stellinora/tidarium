@@ -5,6 +5,7 @@ import '../home/home_providers.dart';
 import '../timetable/timetable_manager_page.dart';
 import '../timetable/timetable_providers.dart';
 import '../timetable/timetable_settings_page.dart';
+import 'acknowledgements_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -56,6 +57,17 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: const Text('鸣谢'),
+            subtitle: const Text('课程表项目与学校数据来源'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const AcknowledgementsPage(),
+              ),
+            ),
+          ),
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('Tidarium'),
