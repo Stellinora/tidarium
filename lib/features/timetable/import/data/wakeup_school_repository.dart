@@ -61,11 +61,16 @@ List<WakeUpSchool> parseWakeUpSchools(String raw) {
 }
 
 WakeUpFamily? _familyForType(String type) {
+  if (_isQiangzhiType(type)) return WakeUpFamily.qiangzhi;
   if (_zhengfangTypes.contains(type)) return WakeUpFamily.zhengfang;
   if (_qingguoTypes.contains(type)) return WakeUpFamily.qingguo;
   if (_urpTypes.contains(type)) return WakeUpFamily.urp;
   if (_chaoxingTypes.contains(type)) return WakeUpFamily.chaoxing;
   return null;
+}
+
+bool _isQiangzhiType(String type) {
+  return type.startsWith('qz') || type == 'jlict_qz_old';
 }
 
 Uri? _normalizeUrl(String raw) {

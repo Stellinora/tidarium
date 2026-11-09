@@ -107,6 +107,9 @@ const String shiguangBridgeInitJs = r'''
         showToast: function(message) {
             postMessageToNative('showToast', { message: message });
         },
+        cancelImport: function() {
+            postMessageToNative('cancelImport');
+        },
         notifyTaskCompletion: function() {
             postMessageToNative('notifyTaskCompletion');
         }

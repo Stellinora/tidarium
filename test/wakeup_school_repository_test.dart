@@ -78,7 +78,7 @@ void main() {
     expect(named('青果大学').family, WakeUpFamily.qingguo);
     expect(named('URP 大学').family, WakeUpFamily.urp);
     expect(named('超星大学').family, WakeUpFamily.chaoxing);
-    expect(named('强智大学').family, isNull);
+    expect(named('强智大学').family, WakeUpFamily.qiangzhi);
     expect(named('强智大学').typeLabel, '强智');
     expect(named('金智大学').family, isNull);
     expect(named('金智大学').typeLabel, '金智');
@@ -238,7 +238,7 @@ void main() {
     final schools = await WakeUpSchoolRepository().loadSchools();
 
     expect(schools, hasLength(1941));
-    expect(schools.where((school) => school.canImport), hasLength(1072));
+    expect(schools.where((school) => school.canImport), hasLength(1438));
     expect(schools.where((school) => !school.canImport), isNotEmpty);
   });
 }

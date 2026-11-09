@@ -510,6 +510,8 @@ class _WebImportPageState extends ConsumerState<WebImportPage> {
       case 'saveComboSchedule':
         _warnings.add('组合作息暂不支持，已忽略组合作息设置。');
         await _reply(callbackId, true, true);
+      case 'cancelImport':
+        if (mounted) setState(() => _importing = false);
       case 'notifyTaskCompletion':
         await _completeImport();
     }

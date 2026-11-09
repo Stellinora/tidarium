@@ -77,12 +77,30 @@ void main() {
     expect(target.localScript, contains('xskbcx_cxXsgrkb.html'));
   });
 
+  test('builds a local adapter target for Qiangzhi schools', () async {
+    final target = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '强智大学',
+        initial: 'Q',
+        type: 'qz',
+        url: Uri.parse('https://jw.qiangzhi.edu.cn/'),
+        family: WakeUpFamily.qiangzhi,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+
+    expect(target.school.id, 'qiangzhi_jiaowu');
+    expect(target.adapter.adapterId, 'qiangzhi_01');
+    expect(target.adapter.importUrl, 'https://jw.qiangzhi.edu.cn/');
+    expect(target.localScript, contains('xskb_list.do'));
+  });
+
   test('rejects unsupported WakeUp schools', () async {
     final school = WakeUpSchool(
       name: '未适配大学',
       initial: 'W',
-      type: 'qz',
-      url: Uri.parse('https://qiangzhi.example.edu.cn/'),
+      type: 'jz',
+      url: Uri.parse('https://jinzhi.example.edu.cn/'),
       family: null,
     );
 

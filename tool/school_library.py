@@ -54,11 +54,12 @@ FAILED_CATEGORIES = ("client_error", "blocked", "server_error", "timeout", "ssl_
 
 FAMILY_LABELS = {
     "zhengfang": "正方",
+    "qiangzhi": "强智",
     "qingguo": "青果",
     "urp": "URP",
     "chaoxing": "超星",
 }
-FAMILY_ORDER = ("zhengfang", "qingguo", "urp", "chaoxing")
+FAMILY_ORDER = ("zhengfang", "qiangzhi", "qingguo", "urp", "chaoxing")
 
 EXPORT_COLUMNS = [
     "name",
@@ -147,7 +148,7 @@ def parse_dart_config(path: Path) -> DartConfig:
     ):
         type_sets[match.group(1)] = set(re.findall(r"'([^']*)'", match.group(2)))
 
-    missing = set(FAMILY_ORDER) - set(type_sets)
+    missing = {"zhengfang", "qingguo", "urp", "chaoxing"} - set(type_sets)
     if missing:
         raise SystemExit(
             f"ERROR: could not read type sets {sorted(missing)} from {path}; "
@@ -189,6 +190,8 @@ def normalize_url(raw: object) -> str | None:
 
 
 def family_for_type(type_name: str, config: DartConfig) -> str | None:
+    if type_name.startswith("qz") or type_name == "jlict_qz_old":
+        return "qiangzhi"
     for family in FAMILY_ORDER:
         if type_name in config.type_sets.get(family, set()):
             return family

@@ -1,4 +1,5 @@
 import '../adapters/hdu_adapter.dart';
+import '../adapters/qiangzhi_adapter.dart';
 import '../models/school_models.dart';
 import '../models/wakeup_school.dart';
 import 'adapter_repository.dart';
@@ -52,6 +53,27 @@ Future<WakeUpImportTarget> resolveWakeUpImportTarget({
   final family = school.family;
   if (family == null) {
     throw const WakeUpImportException('该校暂时没有可用的通用教务适配器');
+  }
+
+  if (family == WakeUpFamily.qiangzhi) {
+    return WakeUpImportTarget(
+      school: SchoolEntry(
+        id: family.schoolId,
+        name: school.name,
+        initial: school.initial,
+        resourceFolder: family.schoolId,
+      ),
+      adapter: SchoolAdapter(
+        adapterId: family.adapterId,
+        adapterName: '${school.name} · ${family.label}教务',
+        category: 'GENERAL_TOOL',
+        assetJsPath: '',
+        importUrl: school.url.toString(),
+        maintainer: 'Tidarium',
+        description: '读取强智教务课表、周次与学期日期',
+      ),
+      localScript: qiangzhiAdapterScript,
+    );
   }
 
   final genericSchools = await repository.loadSchools();
