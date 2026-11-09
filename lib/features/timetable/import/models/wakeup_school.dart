@@ -17,6 +17,11 @@ enum WakeUpFamily {
   ),
   jinzhi(label: '金智', schoolId: 'jinzhi_jiaowu', adapterId: 'mtt_01'),
   shuweiMtt(label: '树维', schoolId: 'shuwei_mtt_jiaowu', adapterId: 'mtt_01'),
+  shuweiEams(
+    label: '树维',
+    schoolId: 'shuwei_eams_jiaowu',
+    adapterId: 'eams_01',
+  ),
   urp(label: 'URP', schoolId: 'urp_jiaowu', adapterId: 'urp_01'),
   chaoxing(label: '超星', schoolId: 'chaoxing_jiaowu', adapterId: 'chaoxing');
 

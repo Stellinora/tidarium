@@ -59,6 +59,7 @@ FAMILY_LABELS = {
     "chengfang": "乘方",
     "jinzhi": "金智",
     "shuweiMtt": "树维",
+    "shuweiEams": "树维",
     "urp": "URP",
     "chaoxing": "超星",
 }
@@ -69,6 +70,7 @@ FAMILY_ORDER = (
     "chengfang",
     "jinzhi",
     "shuweiMtt",
+    "shuweiEams",
     "urp",
     "chaoxing",
 )

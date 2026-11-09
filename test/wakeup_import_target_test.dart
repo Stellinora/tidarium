@@ -143,6 +143,23 @@ void main() {
     expect(shuwei.localScript, contains('mtt_arrange_item'));
   });
 
+  test('builds a local adapter target for Shuwei EAMS schools', () async {
+    final target = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '树维EAMS大学',
+        initial: 'S',
+        type: 'xatu_shuwei',
+        url: Uri.parse('https://eams.example.edu.cn/'),
+        family: WakeUpFamily.shuweiEams,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+
+    expect(target.school.id, 'shuwei_eams_jiaowu');
+    expect(target.adapter.adapterId, 'eams_01');
+    expect(target.localScript, contains('TaskActivity'));
+  });
+
   test('rejects unsupported WakeUp schools', () async {
     final school = WakeUpSchool(
       name: '未适配大学',

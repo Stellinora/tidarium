@@ -1,4 +1,5 @@
 import '../adapters/chengfang_adapter.dart';
+import '../adapters/eams_adapter.dart';
 import '../adapters/hdu_adapter.dart';
 import '../adapters/mtt_adapter.dart';
 import '../adapters/qiangzhi_adapter.dart';
@@ -117,6 +118,27 @@ Future<WakeUpImportTarget> resolveWakeUpImportTarget({
         description: '读取${family.label} MTT 课表、周次与节次',
       ),
       localScript: mttAdapterScript,
+    );
+  }
+
+  if (family == WakeUpFamily.shuweiEams) {
+    return WakeUpImportTarget(
+      school: SchoolEntry(
+        id: family.schoolId,
+        name: school.name,
+        initial: school.initial,
+        resourceFolder: family.schoolId,
+      ),
+      adapter: SchoolAdapter(
+        adapterId: family.adapterId,
+        adapterName: '${school.name} · ${family.label} EAMS',
+        category: 'GENERAL_TOOL',
+        assetJsPath: '',
+        importUrl: school.url.toString(),
+        maintainer: 'Tidarium',
+        description: '读取树维 EAMS 课表、周次与节次',
+      ),
+      localScript: eamsAdapterScript,
     );
   }
 

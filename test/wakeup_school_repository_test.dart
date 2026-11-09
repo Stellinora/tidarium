@@ -66,6 +66,12 @@ void main() {
             'url': 'https://shuwei-new.example.edu.cn/',
           },
           {
+            'name': '树维EAMS大学',
+            'sortKey': 'S',
+            'type': 'xatu_shuwei',
+            'url': 'https://shuwei-eams.example.edu.cn/',
+          },
+          {
             'name': '南软大学',
             'sortKey': 'N',
             'type': 'south_soft',
@@ -75,7 +81,7 @@ void main() {
       }),
     );
 
-    expect(schools.length, 10);
+    expect(schools.length, 11);
     WakeUpSchool named(String name) =>
         schools.firstWhere((school) => school.name == name);
 
@@ -94,6 +100,8 @@ void main() {
     expect(named('树维大学').typeLabel, '树维');
     expect(named('树维新版大学').family, isNull);
     expect(named('树维新版大学').typeLabel, '树维');
+    expect(named('树维EAMS大学').family, WakeUpFamily.shuweiEams);
+    expect(named('树维EAMS大学').typeLabel, '树维');
     expect(named('南软大学').family, isNull);
     expect(named('南软大学').typeLabel, '南软');
   });
@@ -246,7 +254,7 @@ void main() {
     final schools = await WakeUpSchoolRepository().loadSchools();
 
     expect(schools, hasLength(1941));
-    expect(schools.where((school) => school.canImport), hasLength(1596));
+    expect(schools.where((school) => school.canImport), hasLength(1672));
     expect(schools.where((school) => !school.canImport), isNotEmpty);
   });
 }
