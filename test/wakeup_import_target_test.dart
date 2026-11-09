@@ -95,6 +95,54 @@ void main() {
     expect(target.localScript, contains('xskb_list.do'));
   });
 
+  test('builds a local adapter target for Chengfang schools', () async {
+    final target = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '乘方大学',
+        initial: 'C',
+        type: 'cf',
+        url: Uri.parse('https://jw.chengfang.edu.cn/'),
+        family: WakeUpFamily.chengfang,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+
+    expect(target.school.id, 'chengfang_jiaowu');
+    expect(target.adapter.adapterId, 'chengfang_01');
+    expect(target.adapter.importUrl, 'https://jw.chengfang.edu.cn/');
+    expect(target.localScript, contains('kbxx'));
+  });
+
+  test('builds local adapter targets for MTT families', () async {
+    final jinzhi = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '金智大学',
+        initial: 'J',
+        type: 'jz',
+        url: Uri.parse('https://jinzhi.example.edu.cn/'),
+        family: WakeUpFamily.jinzhi,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+    final shuwei = await resolveWakeUpImportTarget(
+      school: WakeUpSchool(
+        name: '树维大学',
+        initial: 'S',
+        type: 'shuwei_m',
+        url: Uri.parse('https://shuwei.example.edu.cn/'),
+        family: WakeUpFamily.shuweiMtt,
+      ),
+      repository: _FakeAdapterRepository(),
+    );
+
+    expect(jinzhi.school.id, 'jinzhi_jiaowu');
+    expect(jinzhi.adapter.adapterId, 'mtt_01');
+    expect(jinzhi.localScript, contains('mtt_arrange_item'));
+    expect(shuwei.school.id, 'shuwei_mtt_jiaowu');
+    expect(shuwei.adapter.adapterId, 'mtt_01');
+    expect(shuwei.localScript, contains('mtt_arrange_item'));
+  });
+
   test('rejects unsupported WakeUp schools', () async {
     final school = WakeUpSchool(
       name: '未适配大学',

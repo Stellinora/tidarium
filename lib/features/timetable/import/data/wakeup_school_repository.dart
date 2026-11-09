@@ -64,6 +64,9 @@ WakeUpFamily? _familyForType(String type) {
   if (_isQiangzhiType(type)) return WakeUpFamily.qiangzhi;
   if (_zhengfangTypes.contains(type)) return WakeUpFamily.zhengfang;
   if (_qingguoTypes.contains(type)) return WakeUpFamily.qingguo;
+  if (_chengfangTypes.contains(type)) return WakeUpFamily.chengfang;
+  if (_jinzhiTypes.contains(type)) return WakeUpFamily.jinzhi;
+  if (_shuweiMttTypes.contains(type)) return WakeUpFamily.shuweiMtt;
   if (_urpTypes.contains(type)) return WakeUpFamily.urp;
   if (_chaoxingTypes.contains(type)) return WakeUpFamily.chaoxing;
   return null;
@@ -115,6 +118,12 @@ const Map<String, String> _schoolUrlOverrides = {
 const Set<String> _zhengfangTypes = {'zf'};
 
 const Set<String> _qingguoTypes = {'kingo_new'};
+
+const Set<String> _chengfangTypes = {'cf', 'cf_new'};
+
+const Set<String> _jinzhiTypes = {'jz'};
+
+const Set<String> _shuweiMttTypes = {'shuwei_m'};
 
 const Set<String> _urpTypes = {'urp', 'urp_new'};
 

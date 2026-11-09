@@ -46,8 +46,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Test Qiangzhi adapter
-        run: node --test tool/qiangzhi_adapter_test.mjs
+      - name: Test academic adapters
+        run: node --test tool/qiangzhi_adapter_test.mjs tool/chengfang_adapter_test.mjs tool/mtt_adapter_test.mjs
 
       # Falls back to debug signing when android/key.properties is absent.
       - name: Build APK

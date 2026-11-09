@@ -1,4 +1,6 @@
+import '../adapters/chengfang_adapter.dart';
 import '../adapters/hdu_adapter.dart';
+import '../adapters/mtt_adapter.dart';
 import '../adapters/qiangzhi_adapter.dart';
 import '../models/school_models.dart';
 import '../models/wakeup_school.dart';
@@ -73,6 +75,48 @@ Future<WakeUpImportTarget> resolveWakeUpImportTarget({
         description: '读取强智教务课表、周次与学期日期',
       ),
       localScript: qiangzhiAdapterScript,
+    );
+  }
+
+  if (family == WakeUpFamily.chengfang) {
+    return WakeUpImportTarget(
+      school: SchoolEntry(
+        id: family.schoolId,
+        name: school.name,
+        initial: school.initial,
+        resourceFolder: family.schoolId,
+      ),
+      adapter: SchoolAdapter(
+        adapterId: family.adapterId,
+        adapterName: '${school.name} · ${family.label}教务',
+        category: 'GENERAL_TOOL',
+        assetJsPath: '',
+        importUrl: school.url.toString(),
+        maintainer: 'Tidarium',
+        description: '读取乘方教务课表、周次与学期日期',
+      ),
+      localScript: chengfangAdapterScript,
+    );
+  }
+
+  if (family == WakeUpFamily.jinzhi || family == WakeUpFamily.shuweiMtt) {
+    return WakeUpImportTarget(
+      school: SchoolEntry(
+        id: family.schoolId,
+        name: school.name,
+        initial: school.initial,
+        resourceFolder: family.schoolId,
+      ),
+      adapter: SchoolAdapter(
+        adapterId: family.adapterId,
+        adapterName: '${school.name} · ${family.label}教务',
+        category: 'GENERAL_TOOL',
+        assetJsPath: '',
+        importUrl: school.url.toString(),
+        maintainer: 'Tidarium',
+        description: '读取${family.label} MTT 课表、周次与节次',
+      ),
+      localScript: mttAdapterScript,
     );
   }
 

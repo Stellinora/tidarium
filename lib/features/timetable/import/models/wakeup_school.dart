@@ -10,6 +10,13 @@ enum WakeUpFamily {
     adapterId: 'qiangzhi_01',
   ),
   qingguo(label: '青果', schoolId: 'qingguo_jiaowu', adapterId: 'qingguo_01'),
+  chengfang(
+    label: '乘方',
+    schoolId: 'chengfang_jiaowu',
+    adapterId: 'chengfang_01',
+  ),
+  jinzhi(label: '金智', schoolId: 'jinzhi_jiaowu', adapterId: 'mtt_01'),
+  shuweiMtt(label: '树维', schoolId: 'shuwei_mtt_jiaowu', adapterId: 'mtt_01'),
   urp(label: 'URP', schoolId: 'urp_jiaowu', adapterId: 'urp_01'),
   chaoxing(label: '超星', schoolId: 'chaoxing_jiaowu', adapterId: 'chaoxing');
 

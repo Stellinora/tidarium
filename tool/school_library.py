@@ -56,10 +56,22 @@ FAMILY_LABELS = {
     "zhengfang": "正方",
     "qiangzhi": "强智",
     "qingguo": "青果",
+    "chengfang": "乘方",
+    "jinzhi": "金智",
+    "shuweiMtt": "树维",
     "urp": "URP",
     "chaoxing": "超星",
 }
-FAMILY_ORDER = ("zhengfang", "qiangzhi", "qingguo", "urp", "chaoxing")
+FAMILY_ORDER = (
+    "zhengfang",
+    "qiangzhi",
+    "qingguo",
+    "chengfang",
+    "jinzhi",
+    "shuweiMtt",
+    "urp",
+    "chaoxing",
+)
 
 EXPORT_COLUMNS = [
     "name",
