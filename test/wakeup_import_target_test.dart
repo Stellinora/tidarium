@@ -81,8 +81,8 @@ void main() {
     final school = WakeUpSchool(
       name: '未适配大学',
       initial: 'W',
-      type: 'kingo_new',
-      url: Uri.parse('https://kingo.example.edu.cn/'),
+      type: 'qz',
+      url: Uri.parse('https://qiangzhi.example.edu.cn/'),
       family: null,
     );
 

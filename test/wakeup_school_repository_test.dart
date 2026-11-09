@@ -20,7 +20,7 @@ void main() {
           {
             'name': '青果大学',
             'sortKey': 'Q',
-            'type': 'qz_with_node',
+            'type': 'kingo_new',
             'url': 'https://qingguo.example.edu.cn/login',
           },
           {
@@ -36,16 +36,40 @@ void main() {
             'url': 'https://chaoxing.example.edu.cn/',
           },
           {
-            'name': '未适配大学',
-            'sortKey': 'W',
-            'type': 'kingo_new',
-            'url': 'https://kingo.example.edu.cn/',
+            'name': '强智大学',
+            'sortKey': 'Q',
+            'type': 'qz_with_node',
+            'url': 'https://qiangzhi.example.edu.cn/',
+          },
+          {
+            'name': '金智大学',
+            'sortKey': 'J',
+            'type': 'jz',
+            'url': 'https://jinzhi.example.edu.cn/',
+          },
+          {
+            'name': '乘方大学',
+            'sortKey': 'C',
+            'type': 'cf',
+            'url': 'https://chengfang.example.edu.cn/',
+          },
+          {
+            'name': '树维大学',
+            'sortKey': 'S',
+            'type': 'shuwei_new',
+            'url': 'https://shuwei.example.edu.cn/',
+          },
+          {
+            'name': '南软大学',
+            'sortKey': 'N',
+            'type': 'south_soft',
+            'url': 'https://southsoft.example.edu.cn/',
           },
         ],
       }),
     );
 
-    expect(schools.length, 5);
+    expect(schools.length, 9);
     WakeUpSchool named(String name) =>
         schools.firstWhere((school) => school.name == name);
 
@@ -54,9 +78,16 @@ void main() {
     expect(named('青果大学').family, WakeUpFamily.qingguo);
     expect(named('URP 大学').family, WakeUpFamily.urp);
     expect(named('超星大学').family, WakeUpFamily.chaoxing);
-    expect(named('未适配大学').family, isNull);
-    expect(named('未适配大学').canImport, isFalse);
-    expect(named('未适配大学').typeLabel, '金智');
+    expect(named('强智大学').family, isNull);
+    expect(named('强智大学').typeLabel, '强智');
+    expect(named('金智大学').family, isNull);
+    expect(named('金智大学').typeLabel, '金智');
+    expect(named('乘方大学').family, isNull);
+    expect(named('乘方大学').typeLabel, '乘方');
+    expect(named('树维大学').family, isNull);
+    expect(named('树维大学').typeLabel, '树维');
+    expect(named('南软大学').family, isNull);
+    expect(named('南软大学').typeLabel, '南软');
   });
 
   test('skips blank, invalid and credential-bearing URLs', () {
@@ -207,7 +238,7 @@ void main() {
     final schools = await WakeUpSchoolRepository().loadSchools();
 
     expect(schools, hasLength(1941));
-    expect(schools.where((school) => school.canImport), hasLength(1278));
+    expect(schools.where((school) => school.canImport), hasLength(1072));
     expect(schools.where((school) => !school.canImport), isNotEmpty);
   });
 }

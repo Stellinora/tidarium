@@ -109,21 +109,7 @@ const Map<String, String> _schoolUrlOverrides = {
 
 const Set<String> _zhengfangTypes = {'zf'};
 
-const Set<String> _qingguoTypes = {
-  'qz',
-  'qz_2017',
-  'qz_ahut',
-  'qz_bjfu',
-  'qz_br',
-  'qz_crazy',
-  'qz_ecust',
-  'qz_fspt',
-  'qz_njust',
-  'qz_old',
-  'qz_single_node',
-  'qz_ustb',
-  'qz_with_node',
-};
+const Set<String> _qingguoTypes = {'kingo_new'};
 
 const Set<String> _urpTypes = {'urp', 'urp_new'};
 

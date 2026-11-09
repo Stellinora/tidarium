@@ -198,12 +198,16 @@ def family_for_type(type_name: str, config: DartConfig) -> str | None:
 def type_label(type_name: str, family: str | None) -> str:
     if family:
         return FAMILY_LABELS[family]
-    if type_name in ("kingo_new", "jz"):
+    if type_name.startswith("qz") or type_name == "jlict_qz_old":
+        return "强智"
+    if type_name == "kingo_new":
+        return "青果"
+    if type_name == "jz":
         return "金智"
     if type_name.startswith("shuwei") or "_shuwei" in type_name:
         return "树维"
     if type_name in ("cf", "cf_new"):
-        return "专用教务"
+        return "乘方"
     if type_name == "south_soft":
         return "南软"
     return type_name or "未知"
