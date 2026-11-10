@@ -7,10 +7,13 @@ import 'package:tidarium/features/home/today_agenda.dart';
 import 'package:tidarium/features/timetable/model/course.dart';
 import 'package:tidarium/features/timetable/model/timetable_data.dart';
 import 'package:tidarium/features/timetable/timetable_providers.dart';
+import 'package:tidarium/features/todos/data/todo_store.dart';
+import 'package:tidarium/features/todos/model/todo_item.dart';
+import 'package:tidarium/features/todos/todo_providers.dart';
 import 'package:tidarium/ui/theme.dart';
 
 void main() {
-  testWidgets('shows today courses, events and the tomorrow placeholder', (
+  testWidgets('shows today items and todo sections', (
     tester,
   ) async {
     final date = DateTime(2026, 9, 7);
@@ -52,6 +55,23 @@ void main() {
         ),
       ],
     );
+    final todos = [
+      TodoItem(
+        id: 'tomorrow',
+        title: '明天交作业',
+        dueAt: DateTime(2026, 9, 8, 23, 59),
+        source: '高数老师',
+        createdAt: DateTime(2026, 9, 7),
+        updatedAt: DateTime(2026, 9, 7),
+      ),
+      TodoItem(
+        id: 'later',
+        title: '写实验报告',
+        dueAt: DateTime(2026, 9, 10, 23, 59),
+        createdAt: DateTime(2026, 9, 7),
+        updatedAt: DateTime(2026, 9, 7),
+      ),
+    ];
 
     await tester.pumpWidget(
       ProviderScope(
@@ -60,6 +80,7 @@ void main() {
             TimetableData.initial(now: date),
           ),
           todayAgendaProvider.overrideWith((ref) async => agenda),
+          todosProvider.overrideWith((ref) => Stream.value(todos)),
         ],
         child: MaterialApp(
           theme: buildTidariumTheme(Brightness.light),
@@ -73,6 +94,57 @@ void main() {
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.text('提交作业'), findsOneWidget);
     expect(find.text('添加课程'), findsNothing);
-    expect(find.text('明天与更多日程'), findsOneWidget);
+    expect(find.text('明日待办'), findsOneWidget);
+    expect(find.text('待办清单'), findsOneWidget);
+    expect(find.text('明天交作业'), findsOneWidget);
+    expect(find.text('写实验报告'), findsOneWidget);
+  });
+
+  testWidgets('toggles a todo through the home section', (tester) async {
+    final date = DateTime(2026, 9, 7);
+    final agenda = TodayAgenda(
+      date: date,
+      status: TodayAgendaStatus.normal,
+      weekNumber: 1,
+      tableName: '我的课表',
+      items: const [],
+    );
+    final store = InMemoryTodoStore(
+      initial: [
+        TodoItem(
+          id: 'tomorrow',
+          title: '明天交作业',
+          dueAt: DateTime(2026, 9, 8, 23, 59),
+          source: '高数老师',
+          createdAt: DateTime(2026, 9, 7),
+          updatedAt: DateTime(2026, 9, 7),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialTimetableProvider.overrideWithValue(
+            TimetableData.initial(now: date),
+          ),
+          todayAgendaProvider.overrideWith((ref) async => agenda),
+          todoStoreProvider.overrideWithValue(store),
+        ],
+        child: MaterialApp(
+          theme: buildTidariumTheme(Brightness.light),
+          home: const HomePage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('明天交作业'), findsOneWidget);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pumpAndSettle();
+
+    final saved = await store.all();
+    expect(saved.single.completed, isTrue);
+    expect(find.textContaining('已完成 1 项'), findsOneWidget);
   });
 }

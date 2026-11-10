@@ -193,7 +193,7 @@ abstract interface class AiGateway {
 
 ## 9. 数据
 
-当前 `EventStore` 为内存实现，P2 替换为 Drift：
+`EventStore`、`TodoStore` 与课表快照由 Drift 持久化：
 
 ```sql
 standard_events(
@@ -206,6 +206,24 @@ standard_events(
   fetched_at INTEGER NOT NULL
 );
 
+todos(
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  due_at INTEGER NOT NULL,
+  source TEXT NOT NULL DEFAULT '',
+  completed INTEGER NOT NULL DEFAULT 0,
+  completed_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+timetable_payloads(
+  id TEXT PRIMARY KEY,
+  payload_json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 plugin_state(
   plugin_id TEXT PRIMARY KEY,
   auth_state TEXT NOT NULL,
@@ -214,7 +232,7 @@ plugin_state(
 );
 ```
 
-缓存优先：UI 只读 `EventStore`，网络同步是后台增量写入。
+缓存优先：UI 只读 `EventStore` / `TodoStore`，网络同步是后台增量写入。
 
 ## 10. 安全与合规
 
@@ -230,7 +248,7 @@ plugin_state(
 | --- | --- | --- |
 | P0 | Android 构建与运行 | `flutter doctor -v`、`flutter build apk --debug` 通过（已完成） |
 | P1 | 工程骨架 | `flutter analyze`、`flutter test` 通过（已完成） |
-| P2 | Drift 持久化 + 缓存优先 UI | 杀进程后数据仍在，冷启动先出缓存 |
+| P2 | Drift 持久化 + 缓存优先 UI | 杀进程后数据仍在，冷启动先出缓存（已完成） |
 | P3 | 学习通 Dart 插件 | 登录、拉取、入库、列表展示真实作业 |
 | P4 | `RuleSandbox` + QuickJS | 同一学习通逻辑改为 `.js` 规则运行 |
 | P5 | AI 网关 | HTML/文本 → `StandardEvent` 结构化链路 |

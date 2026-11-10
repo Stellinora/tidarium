@@ -10,6 +10,6 @@ final pluginRegistryProvider = Provider<PluginRegistry>(
   (ref) => PluginRegistry(),
 );
 
-final eventsProvider = FutureProvider<List<StandardEvent>>(
-  (ref) => ref.watch(eventStoreProvider).all(),
+final eventsProvider = StreamProvider<List<StandardEvent>>(
+  (ref) => ref.watch(eventStoreProvider).watchAll(),
 );

@@ -5,11 +5,13 @@ import '../timetable/model/course.dart';
 import '../timetable/model/timetable_data.dart';
 import '../timetable/timetable_providers.dart';
 import '../timetable/timetable_time.dart';
+import '../todos/model/todo_item.dart';
+import '../todos/todo_providers.dart';
 import 'home_providers.dart';
 
 enum TodayAgendaStatus { normal, noSemester, beforeSemester, afterSemester }
 
-enum AgendaItemType { course, event }
+enum AgendaItemType { course, event, todo }
 
 class AgendaItem {
   const AgendaItem({
@@ -19,6 +21,7 @@ class AgendaItem {
     required this.finished,
     this.course,
     this.event,
+    this.todo,
   });
 
   final AgendaItemType type;
@@ -27,6 +30,7 @@ class AgendaItem {
   final bool finished;
   final Course? course;
   final StandardEvent? event;
+  final TodoItem? todo;
 }
 
 class TodayAgenda {
@@ -49,14 +53,21 @@ class TodayAgenda {
 
 final todayAgendaProvider = FutureProvider<TodayAgenda>((ref) async {
   final data = ref.watch(timetableProvider);
-  final events = await ref.watch(eventsProvider.future);
-  return buildTodayAgenda(data: data, events: events, now: DateTime.now());
+  final events = ref.watch(eventsProvider).value ?? const <StandardEvent>[];
+  final todos = ref.watch(todosProvider).value ?? const <TodoItem>[];
+  return buildTodayAgenda(
+    data: data,
+    events: events,
+    todos: todos,
+    now: DateTime.now(),
+  );
 });
 
 TodayAgenda buildTodayAgenda({
   required TimetableData data,
   required List<StandardEvent> events,
   required DateTime now,
+  List<TodoItem> todos = const [],
 }) {
   final today = dateOnly(now);
   final config = data.config;
@@ -113,6 +124,19 @@ TodayAgenda buildTodayAgenda({
         end: due,
         finished: due.isBefore(now),
         event: event,
+      ),
+    );
+  }
+
+  for (final todo in todos) {
+    if (!_sameDay(todo.dueAt, today)) continue;
+    items.add(
+      AgendaItem(
+        type: AgendaItemType.todo,
+        start: todo.dueAt,
+        end: todo.dueAt,
+        finished: todo.completed,
+        todo: todo,
       ),
     );
   }

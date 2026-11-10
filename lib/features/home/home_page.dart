@@ -11,6 +11,11 @@ import '../timetable/timetable_providers.dart';
 import '../timetable/timetable_time.dart';
 import '../timetable/widgets/course_detail_sheet.dart';
 import '../timetable/widgets/course_editor_sheet.dart';
+import '../todos/model/todo_item.dart';
+import '../todos/todo_filters.dart';
+import '../todos/todo_providers.dart';
+import '../todos/widgets/todo_editor_sheet.dart';
+import '../todos/widgets/todo_section.dart';
 import 'today_agenda.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -28,6 +33,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final agenda = ref.watch(todayAgendaProvider);
     final config = ref.watch(timetableProvider).config;
+    final todos = ref.watch(todosProvider).value ?? const <TodoItem>[];
     final hasTimetable = ref
         .watch(timetableLibraryProvider)
         .timetables
@@ -37,6 +43,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('今日日程'),
         actions: [
+          IconButton(
+            tooltip: '添加待办',
+            onPressed: _addTodo,
+            icon: const Icon(Icons.add_task),
+          ),
           IconButton(
             tooltip: '设置',
             onPressed: () => Navigator.of(context).push(
@@ -55,7 +66,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
       body: SafeArea(
         child: agenda.when(
-          data: (data) => _buildAgenda(context, data, config),
+          data: (data) => _buildAgenda(context, data, config, todos),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stackTrace) => Center(child: Text('读取日程失败：$error')),
         ),
@@ -82,14 +93,71 @@ class _HomePageState extends ConsumerState<HomePage> {
       ..showSnackBar(SnackBar(content: Text('已添加「${course.name}」')));
   }
 
+  Future<void> _addTodo() async {
+    final todo = await showTodoEditorSheet(context);
+    if (todo == null || !mounted) return;
+    await ref.read(todoStoreProvider).upsert(todo);
+  }
+
+  Future<void> _editTodo(TodoItem todo) async {
+    final updated = await showTodoEditorSheet(context, initial: todo);
+    if (updated == null || !mounted) return;
+    await ref.read(todoStoreProvider).upsert(updated);
+  }
+
+  Future<void> _toggleTodo(TodoItem todo) async {
+    final now = DateTime.now();
+    final updated = todo.copyWith(
+      completed: !todo.completed,
+      completedAt: todo.completed ? null : now,
+      clearCompletedAt: todo.completed,
+      updatedAt: now,
+    );
+    await ref.read(todoStoreProvider).upsert(updated);
+  }
+
+  Future<void> _deleteTodo(TodoItem todo) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除待办'),
+        content: Text('确定删除「${todo.title}」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(todoStoreProvider).delete(todo.id);
+  }
+
   Widget _buildAgenda(
     BuildContext context,
     TodayAgenda agenda,
     TimetableConfig config,
+    List<TodoItem> todos,
   ) {
     final theme = Theme.of(context);
     final firstActive = agenda.items.indexWhere((item) => !item.finished);
     final activeIndex = firstActive < 0 ? null : firstActive;
+    final now = DateTime.now();
+    final today = dateOnly(agenda.date);
+    final reference = DateTime(
+      agenda.date.year,
+      agenda.date.month,
+      agenda.date.day,
+      now.hour,
+      now.minute,
+    );
+    final tomorrowTodos = todosDueOn(todos, addCalendarDays(today, 1));
+    final listTodos = todosOutsideTodayAndTomorrow(todos, reference);
 
     if (activeIndex != null && !_didAutoScroll) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,38 +213,51 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
         Expanded(
-          child: agenda.items.isEmpty
-              ? ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  children: const [
-                    SizedBox(height: 80),
-                    _EmptyState(),
-                    SizedBox(height: 24),
-                    _TomorrowPlaceholder(),
-                  ],
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-                  itemCount: agenda.items.length + 1,
-                  separatorBuilder: (_, index) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    if (index == agenda.items.length) {
-                      return const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: _TomorrowPlaceholder(),
-                      );
-                    }
-                    final item = agenda.items[index];
-                    return _AgendaItemTile(
-                      key: index == activeIndex ? _activeItemKey : null,
-                      item: item,
-                      config: config,
-                      onCourseTap: item.course == null
-                          ? null
-                          : () => _openCourse(item.course!),
-                    );
-                  },
-                ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+            children: [
+              if (agenda.items.isEmpty) ...[
+                const SizedBox(height: 40),
+                const _EmptyState(),
+                const SizedBox(height: 16),
+              ] else ...[
+                for (var index = 0; index < agenda.items.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 10),
+                  _AgendaItemTile(
+                    key: index == activeIndex ? _activeItemKey : null,
+                    item: agenda.items[index],
+                    config: config,
+                    onCourseTap: agenda.items[index].course == null
+                        ? null
+                        : () => _openCourse(agenda.items[index].course!),
+                    onTodoToggle: agenda.items[index].todo == null
+                        ? null
+                        : () => _toggleTodo(agenda.items[index].todo!),
+                    onTodoTap: agenda.items[index].todo == null
+                        ? null
+                        : () => _editTodo(agenda.items[index].todo!),
+                  ),
+                ],
+                const SizedBox(height: 20),
+              ],
+              TodoSection(
+                title: '明日待办',
+                todos: tomorrowTodos,
+                onToggle: _toggleTodo,
+                onEdit: _editTodo,
+                onDelete: _deleteTodo,
+              ),
+              const SizedBox(height: 8),
+              TodoSection(
+                title: '待办清单',
+                todos: listTodos,
+                showOverdue: true,
+                onToggle: _toggleTodo,
+                onEdit: _editTodo,
+                onDelete: _deleteTodo,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -242,11 +323,15 @@ class _AgendaItemTile extends StatelessWidget {
     required this.item,
     required this.config,
     required this.onCourseTap,
+    this.onTodoToggle,
+    this.onTodoTap,
   });
 
   final AgendaItem item;
   final TimetableConfig config;
   final VoidCallback? onCourseTap;
+  final VoidCallback? onTodoToggle;
+  final VoidCallback? onTodoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -377,6 +462,31 @@ class _AgendaItemTile extends StatelessWidget {
       );
     }
 
+    if (item.todo != null) {
+      final todo = item.todo!;
+      final subtitle = [
+        if (todo.source.isNotEmpty) todo.source,
+        '截止 ${DateFormat('HH:mm').format(todo.dueAt)}',
+      ].join(' · ');
+      return Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: Checkbox(
+            value: todo.completed,
+            onChanged: (_) => onTodoToggle?.call(),
+          ),
+          title: Text(
+            todo.title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              decoration: todo.completed ? TextDecoration.lineThrough : null,
+            ),
+          ),
+          subtitle: Text(subtitle),
+          onTap: onTodoTap,
+        ),
+      );
+    }
+
     final event = item.event!;
     return Card(
       margin: EdgeInsets.zero,
@@ -429,26 +539,3 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _TomorrowPlaceholder extends StatelessWidget {
-  const _TomorrowPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      child: ListTile(
-        enabled: false,
-        leading: const Icon(Icons.event_note_outlined),
-        title: const Text('明天与更多日程'),
-        subtitle: Text(
-          '后续版本开放',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}

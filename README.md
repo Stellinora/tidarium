@@ -13,7 +13,8 @@ Tidarium 由日耳曼语 `*tīdiz`（时间）与拉丁语 `-ārium`（容器/�
 - [x] P0 Android 工程可构建、可安装运行
 - [x] P1 工程骨架：领域模型、插件契约、注册中心、同步调度、AI 网关接口、基础 UI
 - [x] 多课表：每个课表独立保存课程、作息时间和学期设置
-- [ ] P2 本地持久化（Drift）+ 缓存优先 UI
+- [x] P2 本地持久化（Drift）+ 缓存优先 UI
+- [x] 待办：老师/他人布置的有 DDL 的一次性任务，支持完成状态
 - [ ] P3 学习通数据源
 - [ ] P4 QuickJS 规则沙箱
 - [ ] P5 AI 网关
@@ -29,7 +30,7 @@ Tidarium 由日耳曼语 `*tīdiz`（时间）与拉丁语 `-ārium`（容器/�
 | 状态 | Riverpod 3.4.3 |
 | 网络 | Dio 5.11.1 |
 | 解析 | html 0.15.7 |
-| 存储 | 当前 InMemoryEventStore，P2 切换 Drift + SQLite |
+| 存储 | Drift + SQLite（事件、待办、课表快照） |
 | 凭证 | flutter_secure_storage 11.2.0 |
 | Android | Gradle 9.3.1 / AGP 9.1.0 / Kotlin 2.4.0 / compileSdk 36 / minSdk 24 |
 
