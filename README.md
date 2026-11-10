@@ -1,6 +1,6 @@
 # Tidarium · 时匣
 
-一体化日程助手：把学习通、中国大学 MOOC 等平台的课程、作业与线上课，聚合为一张统一日程表。
+一体化日程助手：把学习通、中国大学 MOOC 等平台的课程、作业与线上课，聚合为一张统一日程表；同时支持本机一次性待办与完成状态。
 
 Tidarium 由日耳曼语 `*tīdiz`（时间）与拉丁语 `-ārium`（容器/场所）构成，字面意为「时匣」。
 
@@ -20,7 +20,7 @@ Tidarium 由日耳曼语 `*tīdiz`（时间）与拉丁语 `-ārium`（容器/�
 - [ ] P5 AI 网关
 - [ ] P6 规则仓库热更新
 
-插件与同步目前是占位实现（返回空数据）。开发环境见 [docs/development.md](docs/development.md)。
+插件数据源与同步目前仍是占位实现（返回空数据）；本地课表、待办与事件持久化已可用。开发环境见 [docs/development.md](docs/development.md)。
 
 ## 技术栈
 
@@ -41,18 +41,22 @@ lib/
   main.dart, app.dart          应用入口与根组件
   ui/theme.dart                Material 3 主题
   core/
-    model/standard_event.dart  统一事件模型
+    model/standard_event.dart  插件事件模型
     plugin/                    插件契约、注册中心、沙箱接口
     auth/                      认证接口
     sync/                      前台同步调度器
     ai/                        AI 网关与配额
-    db/                        事件存储接口与内存实现
+    db/                        Drift 数据库、事件与课表持久化
   plugins/
     chaoxing/                  学习通插件（占位）
     mooc/                      中国大学 MOOC 插件（占位）
   features/
-    home/                      首页与 Provider
+    home/                      首页、今日日程与待办
     settings/                  设置页
+    timetable/                 课表、教务导入适配器与提醒
+    todos/                     待办模型、Drift 存储与组件
+tool/
+  school_library.py            学校库导出与批量检测
 docs/
   architecture.md              技术框架
   development.md               开发环境
@@ -77,10 +81,13 @@ flutter run
 - [开发环境](docs/development.md)
 - [插件与 AI 网关讨论稿](basic.md)
 
-## WakeUp 学校库
+## 学校库与教务导入
 
-- 当前支持：正方、青果、URP、超星通用教务家族。
-- 待支持：`kingo_new`、`jz`、`shuwei_*`、`cf` / `cf_new`、`south_soft` 及学校专用类型。
+- UI 只保留「搜索学校」和「通用教务系统」两个入口，不再按数据来源划分。
+- 已支持通用教务家族：正方、强智、青果、金智、乘方、树维 MTT、树维 EAMS、URP、超星。
+- 当前覆盖 1,941 所学校中的约 1,672 所（86%）。
+- 剩余长尾：`shuwei_new`、`south_soft`、各校研究生/专用系统等。
+- `tool/school_library.py` 可导出学校清单、批量检测 URL、生成分类统计。
 - 待支持学校仍可复制网址，或前往通用教务系统手动导入。
 
 ## 第三方数据

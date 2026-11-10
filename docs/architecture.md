@@ -56,7 +56,7 @@
 | html | 0.15.7 | DOM 解析 |
 | intl | 0.20.3 | 日期格式化 |
 | flutter_secure_storage | 11.2.0 | Cookie/凭证存储 |
-| Drift + SQLite | 规划 P2 | 结构化持久化 |
+| Drift + SQLite | 2.35 | 结构化持久化 |
 | flutter_inappwebview | 规划 P3 | 登录 Cookie 截获 |
 | JSONata / QuickJS | 规划 P4 | 规则层与沙箱 |
 
@@ -92,12 +92,16 @@ lib/
     sync/sync_scheduler.dart      [x] 并发 3 的同步调度与异常隔离
     ai/ai_gateway.dart            [x] 路由、Provider、AiQuota
     db/event_store.dart           [x] EventStore 接口 + 内存实现
+    db/app_database.dart          [x] Drift 表：事件、待办、课表快照
+    db/drift_event_store.dart     [x] 事件持久化与 watch
   plugins/
     chaoxing/chaoxing_plugin.dart [x] 契约占位，待 P3 实现
     mooc/mooc_plugin.dart         [x] 契约占位，待 P3 实现
   features/
-    home/                         [x] 首页、Provider、空状态
+    home/                         [x] 首页、Provider、今日日程
     settings/                     [x] 插件与权限展示
+    timetable/                    [x] 课表、导入适配器、提醒
+    todos/                        [x] 待办模型、Drift 存储与组件
 ```
 
 ## 6. 领域模型
@@ -117,6 +121,25 @@ class StandardEvent {
 - 线上课在 JSON 中使用 `online_session`，与讨论稿一致；Dart 侧枚举名为 `onlineSession`。
 - 入库按 `id` upsert，来源平台内的稳定 ID 是去重关键。
 - 时间统一存 UTC，展示层再转本地时区。
+
+本地待办是独立模型，不来自插件：
+
+```dart
+class TodoItem {
+  final String id;
+  final String title;
+  final String note;
+  final DateTime dueAt;     // 必填，一次性任务的 DDL
+  final String source;      // 老师/他人/来源
+  final bool completed;
+  final DateTime? completedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+```
+
+- 通过 Drift `todos` 表持久化，勾选完成立即写库。
+- 首页按「今日日程 / 明日待办 / 待办清单」聚合。
 
 ## 7. 插件系统
 
@@ -260,7 +283,7 @@ plugin_state(
 | --- | --- | --- |
 | D1 | 用 Flutter，不用原生 Android | 讨论稿的 `StandardEvent` 与插件包均为 Dart/Flutter 生态 |
 | D2 | 命名 Tidarium，包名 `io.github.stellinora.tidarium` | 包名避免语言保留字；命名空间唯一 |
-| D3 | 先定义 `EventStore` 接口，P2 再接 Drift | 避免骨架阶段引入代码生成 |
+| D3 | 先定义 `EventStore` 接口，P2 接入 Drift | 骨架阶段避免代码生成；P2 已完成 Drift 持久化 |
 | D4 | Riverpod + MVVM | 与 Flutter 生态一致，便于插件状态隔离 |
 | D5 | 规则层 JSONata → QuickJS → Wasm | 安全性与灵活性分层，不引入 Lua |
 | D6 | AI 先云端 BYOK，本地模型独立里程碑 | 本地 1.5B 模型体积大，先验证链路 |

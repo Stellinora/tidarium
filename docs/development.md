@@ -56,6 +56,16 @@ flutter build apk --debug
 
 产物：`build/app/outputs/flutter-apk/app-debug.apk`。
 
+## 数据库代码生成
+
+修改 `lib/core/db/app_database.dart` 后重新生成 Drift 代码：
+
+```bash
+dart run build_runner build
+```
+
+生成的 `lib/core/db/app_database.g.dart` 需要一并提交。测试使用内存 SQLite，不需要设备。
+
 ## 模拟器
 
 ```bash
