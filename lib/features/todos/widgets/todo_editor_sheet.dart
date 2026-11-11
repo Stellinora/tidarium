@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../owners/model/owner.dart';
+import '../../owners/owner_providers.dart';
+import '../../tags/model/tag.dart';
+import '../../tags/tag_providers.dart';
+import '../../timetable/timetable_providers.dart';
 import '../model/todo_item.dart';
 
 Future<TodoItem?> showTodoEditorSheet(
@@ -15,21 +21,28 @@ Future<TodoItem?> showTodoEditorSheet(
   );
 }
 
-class _TodoEditorSheet extends StatefulWidget {
+class _TodoEditorSheet extends ConsumerStatefulWidget {
   const _TodoEditorSheet({this.initial});
 
   final TodoItem? initial;
 
   @override
-  State<_TodoEditorSheet> createState() => _TodoEditorSheetState();
+  ConsumerState<_TodoEditorSheet> createState() => _TodoEditorSheetState();
 }
 
-class _TodoEditorSheetState extends State<_TodoEditorSheet> {
+class _TodoEditorSheetState extends ConsumerState<_TodoEditorSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _noteController;
   late final TextEditingController _sourceController;
   late DateTime _dueAt;
   String? _titleError;
+
+  late String _profileId;
+  String _ownerId = '';
+  List<Owner> _owners = const [];
+  List<Tag> _tags = const [];
+  final Set<String> _selectedTagIds = <String>{};
+  bool _loadingMeta = true;
 
   @override
   void initState() {
@@ -40,6 +53,41 @@ class _TodoEditorSheetState extends State<_TodoEditorSheet> {
     _sourceController = TextEditingController(text: initial?.source ?? '');
     final now = DateTime.now();
     _dueAt = initial?.dueAt ?? DateTime(now.year, now.month, now.day, 23, 59);
+    _profileId = initial?.profileId.isNotEmpty == true
+        ? initial!.profileId
+        : ref.read(timetableLibraryProvider).activeId;
+    _loadMeta();
+  }
+
+  Future<void> _loadMeta() async {
+    final ownerStore = ref.read(ownerStoreProvider);
+    final tagStore = ref.read(tagStoreProvider);
+
+    final owners = await ownerStore.all(_profileId);
+    final tags = await tagStore.all(_profileId);
+
+    var ownerId = widget.initial?.ownerId ?? '';
+    if (ownerId.isEmpty || !owners.any((owner) => owner.id == ownerId)) {
+      final fallback = await ownerStore.findDefault(_profileId);
+      ownerId = fallback?.id ?? (owners.isEmpty ? '' : owners.first.id);
+    }
+
+    var tagIds = <String>{};
+    final initial = widget.initial;
+    if (initial != null) {
+      tagIds = (await tagStore.tagIdsOf(initial.id)).toSet();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _owners = owners;
+      _tags = tags;
+      _ownerId = ownerId;
+      _selectedTagIds
+        ..clear()
+        ..addAll(tagIds);
+      _loadingMeta = false;
+    });
   }
 
   @override
@@ -78,7 +126,45 @@ class _TodoEditorSheetState extends State<_TodoEditorSheet> {
     });
   }
 
-  void _save() {
+  Future<void> _createTag() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('新建标签'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '例如：作业'),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+
+    final tag = await ref
+        .read(tagStoreProvider)
+        .upsertByName(_profileId, name.trim());
+    final tags = await ref.read(tagStoreProvider).all(_profileId);
+    if (!mounted) return;
+    setState(() {
+      _tags = tags;
+      _selectedTagIds.add(tag.id);
+    });
+  }
+
+  Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       setState(() => _titleError = '请输入待办标题');
@@ -97,7 +183,15 @@ class _TodoEditorSheetState extends State<_TodoEditorSheet> {
       completedAt: initial?.completedAt,
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
+      profileId: _profileId,
+      ownerId: _ownerId,
     );
+
+    await ref
+        .read(tagStoreProvider)
+        .setTodoTags(item.id, _selectedTagIds, profileId: _profileId);
+
+    if (!mounted) return;
     Navigator.of(context).pop(item);
   }
 
@@ -147,6 +241,67 @@ class _TodoEditorSheetState extends State<_TodoEditorSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
+            const SizedBox(height: 12),
+            if (_loadingMeta)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: LinearProgressIndicator(),
+              )
+            else ...[
+              DropdownButtonFormField<String>(
+                initialValue: _ownerId.isEmpty ? null : _ownerId,
+                decoration: const InputDecoration(
+                  labelText: '归属',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  for (final owner in _owners)
+                    DropdownMenuItem(
+                      value: owner.id,
+                      child: Text(
+                        '${owner.name} · ${owner.kind.label}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _ownerId = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('标签', style: theme.textTheme.labelLarge),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final tag in _tags)
+                    FilterChip(
+                      label: Text(tag.name),
+                      selected: _selectedTagIds.contains(tag.id),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedTagIds.add(tag.id);
+                          } else {
+                            _selectedTagIds.remove(tag.id);
+                          }
+                        });
+                      },
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 16),
+                    label: const Text('新建'),
+                    onPressed: _createTag,
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               controller: _noteController,

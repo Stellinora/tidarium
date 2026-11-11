@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../home/home_providers.dart';
@@ -6,6 +6,7 @@ import '../timetable/timetable_manager_page.dart';
 import '../timetable/timetable_providers.dart';
 import '../timetable/timetable_settings_page.dart';
 import 'acknowledgements_page.dart';
+import 'ai_settings_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -46,6 +47,17 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: const Text('AI 服务'),
+            subtitle: const Text('服务商、API Key、模型与能力检测'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const AiSettingsPage(),
+              ),
+            ),
+          ),
           const ListTile(title: Text('插件'), subtitle: Text('静态注册，按需启用')),
           for (final plugin in plugins)
             ListTile(
@@ -78,3 +90,4 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 }
+
