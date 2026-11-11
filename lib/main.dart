@@ -10,7 +10,15 @@ import 'features/home/home_providers.dart';
 import 'features/intake/debug/intake_debug_page.dart';
 import 'features/intake/image_intake.dart';
 import 'features/intake/share_intake_service.dart';
+import 'features/owners/data/drift_owner_store.dart';
+import 'features/owners/data/owner_store.dart';
+import 'features/owners/owner_providers.dart';
+import 'features/profiles/storage_bootstrap.dart';
+import 'features/tags/data/drift_tag_store.dart';
+import 'features/tags/data/tag_store.dart';
+import 'features/tags/tag_providers.dart';
 import 'features/timetable/data/drift_timetable_store.dart';
+import 'features/timetable/model/timetable_library.dart';
 import 'features/timetable/data/timetable_store.dart';
 import 'features/timetable/reminder/course_reminder_coordinator.dart';
 import 'features/timetable/reminder/course_reminder_service.dart';
@@ -26,19 +34,39 @@ Future<void> main() async {
   TimetableStore timetableStore = legacyStore;
   EventStore eventStore = InMemoryEventStore();
   TodoStore todoStore = InMemoryTodoStore();
+  OwnerStore ownerStore = InMemoryOwnerStore();
+  TagStore tagStore = InMemoryTagStore();
+  AppDatabase? database;
 
   try {
-    final database = AppDatabase(openAppDatabase());
-    final driftStore = DriftTimetableStore(database);
+    final db = AppDatabase(openAppDatabase());
+    database = db;
+    final driftStore = DriftTimetableStore(db);
     await driftStore.migrateFrom(legacyStore);
     timetableStore = driftStore;
-    eventStore = DriftEventStore(database);
-    todoStore = DriftTodoStore(database);
+    eventStore = DriftEventStore(db);
+    todoStore = DriftTodoStore(db);
+    ownerStore = DriftOwnerStore(db);
+    tagStore = DriftTagStore(db);
   } catch (error) {
     debugPrint('Drift storage is unavailable, using legacy storage: $error');
   }
 
   final saved = await timetableStore.loadLibrary();
+
+  if (database != null) {
+    final library = saved ?? TimetableLibrary.initial();
+    try {
+      await StorageBootstrap(
+        database: database,
+        owners: ownerStore,
+        library: library,
+      ).run();
+    } catch (error) {
+      debugPrint('Storage bootstrap failed: $error');
+    }
+  }
+
   final reminderService = CourseReminderService();
   try {
     await reminderService.initialize();
@@ -81,6 +109,8 @@ Future<void> main() async {
         timetableStoreProvider.overrideWithValue(timetableStore),
         eventStoreProvider.overrideWithValue(eventStore),
         todoStoreProvider.overrideWithValue(todoStore),
+        ownerStoreProvider.overrideWithValue(ownerStore),
+        tagStoreProvider.overrideWithValue(tagStore),
         courseReminderServiceProvider.overrideWithValue(reminderService),
         if (saved != null)
           initialTimetableLibraryProvider.overrideWithValue(saved),
@@ -89,3 +119,4 @@ Future<void> main() async {
     ),
   );
 }
+

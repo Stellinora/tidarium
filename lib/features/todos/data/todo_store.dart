@@ -1,11 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import '../model/todo_item.dart';
 
 abstract interface class TodoStore {
-  Future<List<TodoItem>> all();
+  /// [profileId] 非空时只返回该课表下的待办。
+  Future<List<TodoItem>> all({String? profileId});
 
-  Stream<List<TodoItem>> watchAll();
+  Stream<List<TodoItem>> watchAll({String? profileId});
 
   Future<void> upsert(TodoItem item);
 
@@ -23,12 +24,21 @@ class InMemoryTodoStore implements TodoStore {
   final _controller = StreamController<List<TodoItem>>.broadcast();
 
   @override
-  Future<List<TodoItem>> all() async => _sorted();
+  Future<List<TodoItem>> all({String? profileId}) async =>
+      _sorted(profileId: profileId);
 
   @override
-  Stream<List<TodoItem>> watchAll() async* {
-    yield await all();
-    yield* _controller.stream;
+  Stream<List<TodoItem>> watchAll({String? profileId}) async* {
+    yield await all(profileId: profileId);
+    yield* _controller.stream.map(
+      (items) => profileId == null || profileId.isEmpty
+          ? items
+          : items
+                .where(
+                  (item) => item.profileId.isEmpty || item.profileId == profileId,
+                )
+                .toList(),
+    );
   }
 
   @override
@@ -43,8 +53,16 @@ class InMemoryTodoStore implements TodoStore {
     _emit();
   }
 
-  List<TodoItem> _sorted() {
-    final items = _items.values.toList(growable: false);
+  List<TodoItem> _sorted({String? profileId}) {
+    final items = _items.values
+        .where(
+          (item) =>
+              profileId == null ||
+              profileId.isEmpty ||
+              item.profileId.isEmpty ||
+              item.profileId == profileId,
+        )
+        .toList(growable: false);
     items.sort((a, b) {
       final byDue = a.dueAt.compareTo(b.dueAt);
       if (byDue != 0) return byDue;
@@ -59,3 +77,5 @@ class InMemoryTodoStore implements TodoStore {
     }
   }
 }
+
+

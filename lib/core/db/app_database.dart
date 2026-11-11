@@ -32,8 +32,74 @@ class Todos extends Table {
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
 
+  /// 所属课表 profile，v2 新增；迁移期允许为空字符串，启动时回填。
+  TextColumn get profileId => text().withDefault(const Constant(''))();
+
+  /// 所属归属，v2 新增；迁移期允许为空字符串，启动时回填到默认组。
+  TextColumn get ownerId => text().withDefault(const Constant(''))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('OwnerRow')
+class Owners extends Table {
+  TextColumn get id => text()();
+  TextColumn get profileId => text()();
+  TextColumn get kind => text()();
+  TextColumn get name => text()();
+  TextColumn get platform => text().nullable()();
+  TextColumn get origin => text().withDefault(const Constant('manual'))();
+  BoolColumn get nameCustom => boolean().withDefault(const Constant(false))();
+  IntColumn get colorIndex => integer().nullable()();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// 归属与外部对象的绑定：目前只有课程（refType = course，refId = course.id）。
+@DataClassName('OwnerRefRow')
+class OwnerRefs extends Table {
+  TextColumn get ownerId => text()();
+  TextColumn get profileId => text()();
+  TextColumn get refType => text()();
+  TextColumn get refId => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {refType, refId};
+}
+
+@DataClassName('TagRow')
+class Tags extends Table {
+  TextColumn get id => text()();
+  TextColumn get profileId => text()();
+  TextColumn get name => text()();
+  TextColumn get nameNorm => text()();
+  IntColumn get colorIndex => integer().nullable()();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {profileId, nameNorm},
+  ];
+}
+
+@DataClassName('TodoTagRow')
+class TodoTags extends Table {
+  TextColumn get todoId => text()();
+  TextColumn get tagId => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {todoId, tagId};
 }
 
 @DataClassName('TimetablePayloadRow')
@@ -58,13 +124,63 @@ class PluginStates extends Table {
 }
 
 @DriftDatabase(
-  tables: [StandardEvents, Todos, TimetablePayloads, PluginStates],
+  tables: [
+    StandardEvents,
+    Todos,
+    Owners,
+    OwnerRefs,
+    Tags,
+    TodoTags,
+    TimetablePayloads,
+    PluginStates,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+      await _createIndexes();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        await m.createTable(owners);
+        await m.createTable(ownerRefs);
+        await m.createTable(tags);
+        await m.createTable(todoTags);
+        await m.addColumn(todos, todos.profileId);
+        await m.addColumn(todos, todos.ownerId);
+        await _createIndexes();
+      }
+    },
+  );
+
+  Future<void> _createIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_todos_profile_due '
+      'ON todos (profile_id, due_at)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_owners_profile_kind '
+      'ON owners (profile_id, kind)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_owner_refs_profile '
+      'ON owner_refs (profile_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_todo_tags_tag ON todo_tags (tag_id)',
+    );
+    await customStatement(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_owners_default '
+      'ON owners (profile_id) WHERE is_default = 1',
+    );
+  }
 }
 
 LazyDatabase openAppDatabase() {

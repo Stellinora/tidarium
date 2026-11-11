@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+﻿import 'package:drift/drift.dart';
 
 import '../../../core/db/app_database.dart';
 import '../model/todo_item.dart';
@@ -9,24 +9,33 @@ class DriftTodoStore implements TodoStore {
 
   final AppDatabase _db;
 
+  SimpleSelectStatement<$TodosTable, TodoRow> _query({String? profileId}) {
+    final query = _db.select(_db.todos);
+    if (profileId != null && profileId.isNotEmpty) {
+      // 兼容迁移期尚未回填的空 profileId（启动 bootstrap 会补齐）。
+      query.where(
+        (table) =>
+            table.profileId.equals(profileId) | table.profileId.equals(''),
+      );
+    }
+    query.orderBy([
+      (table) => OrderingTerm(expression: table.dueAt),
+      (table) => OrderingTerm(expression: table.createdAt),
+    ]);
+    return query;
+  }
+
   @override
-  Future<List<TodoItem>> all() async {
-    final rows = await (_db.select(
-      _db.todos,
-    )..orderBy([(table) => OrderingTerm(expression: table.dueAt)])).get();
+  Future<List<TodoItem>> all({String? profileId}) async {
+    final rows = await _query(profileId: profileId).get();
     return rows.map(_toItem).toList(growable: false);
   }
 
   @override
-  Stream<List<TodoItem>> watchAll() {
-    final query = _db.select(_db.todos)
-      ..orderBy([
-        (table) => OrderingTerm(expression: table.dueAt),
-        (table) => OrderingTerm(expression: table.createdAt),
-      ]);
-    return query.watch().map(
-      (rows) => rows.map(_toItem).toList(growable: false),
-    );
+  Stream<List<TodoItem>> watchAll({String? profileId}) {
+    return _query(
+      profileId: profileId,
+    ).watch().map((rows) => rows.map(_toItem).toList(growable: false));
   }
 
   @override
@@ -44,6 +53,8 @@ class DriftTodoStore implements TodoStore {
             completedAt: Value(item.completedAt?.millisecondsSinceEpoch),
             createdAt: item.createdAt.millisecondsSinceEpoch,
             updatedAt: item.updatedAt.millisecondsSinceEpoch,
+            profileId: Value(item.profileId),
+            ownerId: Value(item.ownerId),
           ),
         );
   }
@@ -66,6 +77,9 @@ class DriftTodoStore implements TodoStore {
           : DateTime.fromMillisecondsSinceEpoch(row.completedAt!),
       createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAt),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(row.updatedAt),
+      profileId: row.profileId,
+      ownerId: row.ownerId,
     );
   }
 }
+

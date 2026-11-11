@@ -557,6 +557,30 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, TodoRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -568,6 +592,8 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, TodoRow> {
     completedAt,
     createdAt,
     updatedAt,
+    profileId,
+    ownerId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -645,6 +671,18 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, TodoRow> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    }
     return context;
   }
 
@@ -690,6 +728,14 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, TodoRow> {
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
     );
   }
 
@@ -709,6 +755,12 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
   final int? completedAt;
   final int createdAt;
   final int updatedAt;
+
+  /// 所属课表 profile，v2 新增；迁移期允许为空字符串，启动时回填。
+  final String profileId;
+
+  /// 所属归属，v2 新增；迁移期允许为空字符串，启动时回填到默认组。
+  final String ownerId;
   const TodoRow({
     required this.id,
     required this.title,
@@ -719,6 +771,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
     this.completedAt,
     required this.createdAt,
     required this.updatedAt,
+    required this.profileId,
+    required this.ownerId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -734,6 +788,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
     }
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
+    map['profile_id'] = Variable<String>(profileId);
+    map['owner_id'] = Variable<String>(ownerId);
     return map;
   }
 
@@ -750,6 +806,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
           : Value(completedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      profileId: Value(profileId),
+      ownerId: Value(ownerId),
     );
   }
 
@@ -768,6 +826,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
       completedAt: serializer.fromJson<int?>(json['completedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
     );
   }
   @override
@@ -783,6 +843,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
       'completedAt': serializer.toJson<int?>(completedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'profileId': serializer.toJson<String>(profileId),
+      'ownerId': serializer.toJson<String>(ownerId),
     };
   }
 
@@ -796,6 +858,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
     Value<int?> completedAt = const Value.absent(),
     int? createdAt,
     int? updatedAt,
+    String? profileId,
+    String? ownerId,
   }) => TodoRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -806,6 +870,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    profileId: profileId ?? this.profileId,
+    ownerId: ownerId ?? this.ownerId,
   );
   TodoRow copyWithCompanion(TodosCompanion data) {
     return TodoRow(
@@ -820,6 +886,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
           : this.completedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
     );
   }
 
@@ -834,7 +902,9 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
           ..write('completed: $completed, ')
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('profileId: $profileId, ')
+          ..write('ownerId: $ownerId')
           ..write(')'))
         .toString();
   }
@@ -850,6 +920,8 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
     completedAt,
     createdAt,
     updatedAt,
+    profileId,
+    ownerId,
   );
   @override
   bool operator ==(Object other) =>
@@ -863,7 +935,9 @@ class TodoRow extends DataClass implements Insertable<TodoRow> {
           other.completed == this.completed &&
           other.completedAt == this.completedAt &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.profileId == this.profileId &&
+          other.ownerId == this.ownerId);
 }
 
 class TodosCompanion extends UpdateCompanion<TodoRow> {
@@ -876,6 +950,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
   final Value<int?> completedAt;
   final Value<int> createdAt;
   final Value<int> updatedAt;
+  final Value<String> profileId;
+  final Value<String> ownerId;
   final Value<int> rowid;
   const TodosCompanion({
     this.id = const Value.absent(),
@@ -887,6 +963,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
     this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TodosCompanion.insert({
@@ -899,6 +977,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
     this.completedAt = const Value.absent(),
     required int createdAt,
     required int updatedAt,
+    this.profileId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -915,6 +995,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
     Expression<int>? completedAt,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? profileId,
+    Expression<String>? ownerId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -927,6 +1009,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
       if (completedAt != null) 'completed_at': completedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (profileId != null) 'profile_id': profileId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -941,6 +1025,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
     Value<int?>? completedAt,
     Value<int>? createdAt,
     Value<int>? updatedAt,
+    Value<String>? profileId,
+    Value<String>? ownerId,
     Value<int>? rowid,
   }) {
     return TodosCompanion(
@@ -953,6 +1039,8 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
       completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      profileId: profileId ?? this.profileId,
+      ownerId: ownerId ?? this.ownerId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -987,6 +1075,12 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1005,6 +1099,1750 @@ class TodosCompanion extends UpdateCompanion<TodoRow> {
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('profileId: $profileId, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OwnersTable extends Owners with TableInfo<$OwnersTable, OwnerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OwnersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originMeta = const VerificationMeta('origin');
+  @override
+  late final GeneratedColumn<String> origin = GeneratedColumn<String>(
+    'origin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('manual'),
+  );
+  static const VerificationMeta _nameCustomMeta = const VerificationMeta(
+    'nameCustom',
+  );
+  @override
+  late final GeneratedColumn<bool> nameCustom = GeneratedColumn<bool>(
+    'name_custom',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("name_custom" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _colorIndexMeta = const VerificationMeta(
+    'colorIndex',
+  );
+  @override
+  late final GeneratedColumn<int> colorIndex = GeneratedColumn<int>(
+    'color_index',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    kind,
+    name,
+    platform,
+    origin,
+    nameCustom,
+    colorIndex,
+    isDefault,
+    archived,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'owners';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OwnerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    }
+    if (data.containsKey('origin')) {
+      context.handle(
+        _originMeta,
+        origin.isAcceptableOrUnknown(data['origin']!, _originMeta),
+      );
+    }
+    if (data.containsKey('name_custom')) {
+      context.handle(
+        _nameCustomMeta,
+        nameCustom.isAcceptableOrUnknown(data['name_custom']!, _nameCustomMeta),
+      );
+    }
+    if (data.containsKey('color_index')) {
+      context.handle(
+        _colorIndexMeta,
+        colorIndex.isAcceptableOrUnknown(data['color_index']!, _colorIndexMeta),
+      );
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OwnerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OwnerRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      ),
+      origin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin'],
+      )!,
+      nameCustom: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}name_custom'],
+      )!,
+      colorIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_index'],
+      ),
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OwnersTable createAlias(String alias) {
+    return $OwnersTable(attachedDatabase, alias);
+  }
+}
+
+class OwnerRow extends DataClass implements Insertable<OwnerRow> {
+  final String id;
+  final String profileId;
+  final String kind;
+  final String name;
+  final String? platform;
+  final String origin;
+  final bool nameCustom;
+  final int? colorIndex;
+  final bool isDefault;
+  final bool archived;
+  final int createdAt;
+  final int updatedAt;
+  const OwnerRow({
+    required this.id,
+    required this.profileId,
+    required this.kind,
+    required this.name,
+    this.platform,
+    required this.origin,
+    required this.nameCustom,
+    this.colorIndex,
+    required this.isDefault,
+    required this.archived,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['kind'] = Variable<String>(kind);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || platform != null) {
+      map['platform'] = Variable<String>(platform);
+    }
+    map['origin'] = Variable<String>(origin);
+    map['name_custom'] = Variable<bool>(nameCustom);
+    if (!nullToAbsent || colorIndex != null) {
+      map['color_index'] = Variable<int>(colorIndex);
+    }
+    map['is_default'] = Variable<bool>(isDefault);
+    map['archived'] = Variable<bool>(archived);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  OwnersCompanion toCompanion(bool nullToAbsent) {
+    return OwnersCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      kind: Value(kind),
+      name: Value(name),
+      platform: platform == null && nullToAbsent
+          ? const Value.absent()
+          : Value(platform),
+      origin: Value(origin),
+      nameCustom: Value(nameCustom),
+      colorIndex: colorIndex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorIndex),
+      isDefault: Value(isDefault),
+      archived: Value(archived),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory OwnerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OwnerRow(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      name: serializer.fromJson<String>(json['name']),
+      platform: serializer.fromJson<String?>(json['platform']),
+      origin: serializer.fromJson<String>(json['origin']),
+      nameCustom: serializer.fromJson<bool>(json['nameCustom']),
+      colorIndex: serializer.fromJson<int?>(json['colorIndex']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      archived: serializer.fromJson<bool>(json['archived']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'kind': serializer.toJson<String>(kind),
+      'name': serializer.toJson<String>(name),
+      'platform': serializer.toJson<String?>(platform),
+      'origin': serializer.toJson<String>(origin),
+      'nameCustom': serializer.toJson<bool>(nameCustom),
+      'colorIndex': serializer.toJson<int?>(colorIndex),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'archived': serializer.toJson<bool>(archived),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  OwnerRow copyWith({
+    String? id,
+    String? profileId,
+    String? kind,
+    String? name,
+    Value<String?> platform = const Value.absent(),
+    String? origin,
+    bool? nameCustom,
+    Value<int?> colorIndex = const Value.absent(),
+    bool? isDefault,
+    bool? archived,
+    int? createdAt,
+    int? updatedAt,
+  }) => OwnerRow(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    kind: kind ?? this.kind,
+    name: name ?? this.name,
+    platform: platform.present ? platform.value : this.platform,
+    origin: origin ?? this.origin,
+    nameCustom: nameCustom ?? this.nameCustom,
+    colorIndex: colorIndex.present ? colorIndex.value : this.colorIndex,
+    isDefault: isDefault ?? this.isDefault,
+    archived: archived ?? this.archived,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  OwnerRow copyWithCompanion(OwnersCompanion data) {
+    return OwnerRow(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      name: data.name.present ? data.name.value : this.name,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      origin: data.origin.present ? data.origin.value : this.origin,
+      nameCustom: data.nameCustom.present
+          ? data.nameCustom.value
+          : this.nameCustom,
+      colorIndex: data.colorIndex.present
+          ? data.colorIndex.value
+          : this.colorIndex,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnerRow(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('platform: $platform, ')
+          ..write('origin: $origin, ')
+          ..write('nameCustom: $nameCustom, ')
+          ..write('colorIndex: $colorIndex, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    kind,
+    name,
+    platform,
+    origin,
+    nameCustom,
+    colorIndex,
+    isDefault,
+    archived,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OwnerRow &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.kind == this.kind &&
+          other.name == this.name &&
+          other.platform == this.platform &&
+          other.origin == this.origin &&
+          other.nameCustom == this.nameCustom &&
+          other.colorIndex == this.colorIndex &&
+          other.isDefault == this.isDefault &&
+          other.archived == this.archived &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class OwnersCompanion extends UpdateCompanion<OwnerRow> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> kind;
+  final Value<String> name;
+  final Value<String?> platform;
+  final Value<String> origin;
+  final Value<bool> nameCustom;
+  final Value<int?> colorIndex;
+  final Value<bool> isDefault;
+  final Value<bool> archived;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const OwnersCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.name = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.nameCustom = const Value.absent(),
+    this.colorIndex = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OwnersCompanion.insert({
+    required String id,
+    required String profileId,
+    required String kind,
+    required String name,
+    this.platform = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.nameCustom = const Value.absent(),
+    this.colorIndex = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.archived = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       profileId = Value(profileId),
+       kind = Value(kind),
+       name = Value(name),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<OwnerRow> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? kind,
+    Expression<String>? name,
+    Expression<String>? platform,
+    Expression<String>? origin,
+    Expression<bool>? nameCustom,
+    Expression<int>? colorIndex,
+    Expression<bool>? isDefault,
+    Expression<bool>? archived,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (kind != null) 'kind': kind,
+      if (name != null) 'name': name,
+      if (platform != null) 'platform': platform,
+      if (origin != null) 'origin': origin,
+      if (nameCustom != null) 'name_custom': nameCustom,
+      if (colorIndex != null) 'color_index': colorIndex,
+      if (isDefault != null) 'is_default': isDefault,
+      if (archived != null) 'archived': archived,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OwnersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? profileId,
+    Value<String>? kind,
+    Value<String>? name,
+    Value<String?>? platform,
+    Value<String>? origin,
+    Value<bool>? nameCustom,
+    Value<int?>? colorIndex,
+    Value<bool>? isDefault,
+    Value<bool>? archived,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return OwnersCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      kind: kind ?? this.kind,
+      name: name ?? this.name,
+      platform: platform ?? this.platform,
+      origin: origin ?? this.origin,
+      nameCustom: nameCustom ?? this.nameCustom,
+      colorIndex: colorIndex ?? this.colorIndex,
+      isDefault: isDefault ?? this.isDefault,
+      archived: archived ?? this.archived,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (origin.present) {
+      map['origin'] = Variable<String>(origin.value);
+    }
+    if (nameCustom.present) {
+      map['name_custom'] = Variable<bool>(nameCustom.value);
+    }
+    if (colorIndex.present) {
+      map['color_index'] = Variable<int>(colorIndex.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnersCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('platform: $platform, ')
+          ..write('origin: $origin, ')
+          ..write('nameCustom: $nameCustom, ')
+          ..write('colorIndex: $colorIndex, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OwnerRefsTable extends OwnerRefs
+    with TableInfo<$OwnerRefsTable, OwnerRefRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OwnerRefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refTypeMeta = const VerificationMeta(
+    'refType',
+  );
+  @override
+  late final GeneratedColumn<String> refType = GeneratedColumn<String>(
+    'ref_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refIdMeta = const VerificationMeta('refId');
+  @override
+  late final GeneratedColumn<String> refId = GeneratedColumn<String>(
+    'ref_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ownerId, profileId, refType, refId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'owner_refs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OwnerRefRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('ref_type')) {
+      context.handle(
+        _refTypeMeta,
+        refType.isAcceptableOrUnknown(data['ref_type']!, _refTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_refTypeMeta);
+    }
+    if (data.containsKey('ref_id')) {
+      context.handle(
+        _refIdMeta,
+        refId.isAcceptableOrUnknown(data['ref_id']!, _refIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_refIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {refType, refId};
+  @override
+  OwnerRefRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OwnerRefRow(
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      refType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ref_type'],
+      )!,
+      refId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ref_id'],
+      )!,
+    );
+  }
+
+  @override
+  $OwnerRefsTable createAlias(String alias) {
+    return $OwnerRefsTable(attachedDatabase, alias);
+  }
+}
+
+class OwnerRefRow extends DataClass implements Insertable<OwnerRefRow> {
+  final String ownerId;
+  final String profileId;
+  final String refType;
+  final String refId;
+  const OwnerRefRow({
+    required this.ownerId,
+    required this.profileId,
+    required this.refType,
+    required this.refId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['owner_id'] = Variable<String>(ownerId);
+    map['profile_id'] = Variable<String>(profileId);
+    map['ref_type'] = Variable<String>(refType);
+    map['ref_id'] = Variable<String>(refId);
+    return map;
+  }
+
+  OwnerRefsCompanion toCompanion(bool nullToAbsent) {
+    return OwnerRefsCompanion(
+      ownerId: Value(ownerId),
+      profileId: Value(profileId),
+      refType: Value(refType),
+      refId: Value(refId),
+    );
+  }
+
+  factory OwnerRefRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OwnerRefRow(
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      refType: serializer.fromJson<String>(json['refType']),
+      refId: serializer.fromJson<String>(json['refId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ownerId': serializer.toJson<String>(ownerId),
+      'profileId': serializer.toJson<String>(profileId),
+      'refType': serializer.toJson<String>(refType),
+      'refId': serializer.toJson<String>(refId),
+    };
+  }
+
+  OwnerRefRow copyWith({
+    String? ownerId,
+    String? profileId,
+    String? refType,
+    String? refId,
+  }) => OwnerRefRow(
+    ownerId: ownerId ?? this.ownerId,
+    profileId: profileId ?? this.profileId,
+    refType: refType ?? this.refType,
+    refId: refId ?? this.refId,
+  );
+  OwnerRefRow copyWithCompanion(OwnerRefsCompanion data) {
+    return OwnerRefRow(
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      refType: data.refType.present ? data.refType.value : this.refType,
+      refId: data.refId.present ? data.refId.value : this.refId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnerRefRow(')
+          ..write('ownerId: $ownerId, ')
+          ..write('profileId: $profileId, ')
+          ..write('refType: $refType, ')
+          ..write('refId: $refId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ownerId, profileId, refType, refId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OwnerRefRow &&
+          other.ownerId == this.ownerId &&
+          other.profileId == this.profileId &&
+          other.refType == this.refType &&
+          other.refId == this.refId);
+}
+
+class OwnerRefsCompanion extends UpdateCompanion<OwnerRefRow> {
+  final Value<String> ownerId;
+  final Value<String> profileId;
+  final Value<String> refType;
+  final Value<String> refId;
+  final Value<int> rowid;
+  const OwnerRefsCompanion({
+    this.ownerId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.refType = const Value.absent(),
+    this.refId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OwnerRefsCompanion.insert({
+    required String ownerId,
+    required String profileId,
+    required String refType,
+    required String refId,
+    this.rowid = const Value.absent(),
+  }) : ownerId = Value(ownerId),
+       profileId = Value(profileId),
+       refType = Value(refType),
+       refId = Value(refId);
+  static Insertable<OwnerRefRow> custom({
+    Expression<String>? ownerId,
+    Expression<String>? profileId,
+    Expression<String>? refType,
+    Expression<String>? refId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (ownerId != null) 'owner_id': ownerId,
+      if (profileId != null) 'profile_id': profileId,
+      if (refType != null) 'ref_type': refType,
+      if (refId != null) 'ref_id': refId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OwnerRefsCompanion copyWith({
+    Value<String>? ownerId,
+    Value<String>? profileId,
+    Value<String>? refType,
+    Value<String>? refId,
+    Value<int>? rowid,
+  }) {
+    return OwnerRefsCompanion(
+      ownerId: ownerId ?? this.ownerId,
+      profileId: profileId ?? this.profileId,
+      refType: refType ?? this.refType,
+      refId: refId ?? this.refId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (refType.present) {
+      map['ref_type'] = Variable<String>(refType.value);
+    }
+    if (refId.present) {
+      map['ref_id'] = Variable<String>(refId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnerRefsCompanion(')
+          ..write('ownerId: $ownerId, ')
+          ..write('profileId: $profileId, ')
+          ..write('refType: $refType, ')
+          ..write('refId: $refId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TagsTable extends Tags with TableInfo<$TagsTable, TagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameNormMeta = const VerificationMeta(
+    'nameNorm',
+  );
+  @override
+  late final GeneratedColumn<String> nameNorm = GeneratedColumn<String>(
+    'name_norm',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorIndexMeta = const VerificationMeta(
+    'colorIndex',
+  );
+  @override
+  late final GeneratedColumn<int> colorIndex = GeneratedColumn<int>(
+    'color_index',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    name,
+    nameNorm,
+    colorIndex,
+    archived,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('name_norm')) {
+      context.handle(
+        _nameNormMeta,
+        nameNorm.isAcceptableOrUnknown(data['name_norm']!, _nameNormMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameNormMeta);
+    }
+    if (data.containsKey('color_index')) {
+      context.handle(
+        _colorIndexMeta,
+        colorIndex.isAcceptableOrUnknown(data['color_index']!, _colorIndexMeta),
+      );
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {profileId, nameNorm},
+  ];
+  @override
+  TagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TagRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      nameNorm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_norm'],
+      )!,
+      colorIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_index'],
+      ),
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TagsTable createAlias(String alias) {
+    return $TagsTable(attachedDatabase, alias);
+  }
+}
+
+class TagRow extends DataClass implements Insertable<TagRow> {
+  final String id;
+  final String profileId;
+  final String name;
+  final String nameNorm;
+  final int? colorIndex;
+  final bool archived;
+  final int createdAt;
+  final int updatedAt;
+  const TagRow({
+    required this.id,
+    required this.profileId,
+    required this.name,
+    required this.nameNorm,
+    this.colorIndex,
+    required this.archived,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['name'] = Variable<String>(name);
+    map['name_norm'] = Variable<String>(nameNorm);
+    if (!nullToAbsent || colorIndex != null) {
+      map['color_index'] = Variable<int>(colorIndex);
+    }
+    map['archived'] = Variable<bool>(archived);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  TagsCompanion toCompanion(bool nullToAbsent) {
+    return TagsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      name: Value(name),
+      nameNorm: Value(nameNorm),
+      colorIndex: colorIndex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorIndex),
+      archived: Value(archived),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TagRow(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      name: serializer.fromJson<String>(json['name']),
+      nameNorm: serializer.fromJson<String>(json['nameNorm']),
+      colorIndex: serializer.fromJson<int?>(json['colorIndex']),
+      archived: serializer.fromJson<bool>(json['archived']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'name': serializer.toJson<String>(name),
+      'nameNorm': serializer.toJson<String>(nameNorm),
+      'colorIndex': serializer.toJson<int?>(colorIndex),
+      'archived': serializer.toJson<bool>(archived),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  TagRow copyWith({
+    String? id,
+    String? profileId,
+    String? name,
+    String? nameNorm,
+    Value<int?> colorIndex = const Value.absent(),
+    bool? archived,
+    int? createdAt,
+    int? updatedAt,
+  }) => TagRow(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    name: name ?? this.name,
+    nameNorm: nameNorm ?? this.nameNorm,
+    colorIndex: colorIndex.present ? colorIndex.value : this.colorIndex,
+    archived: archived ?? this.archived,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TagRow copyWithCompanion(TagsCompanion data) {
+    return TagRow(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      name: data.name.present ? data.name.value : this.name,
+      nameNorm: data.nameNorm.present ? data.nameNorm.value : this.nameNorm,
+      colorIndex: data.colorIndex.present
+          ? data.colorIndex.value
+          : this.colorIndex,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagRow(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('nameNorm: $nameNorm, ')
+          ..write('colorIndex: $colorIndex, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    name,
+    nameNorm,
+    colorIndex,
+    archived,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TagRow &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.name == this.name &&
+          other.nameNorm == this.nameNorm &&
+          other.colorIndex == this.colorIndex &&
+          other.archived == this.archived &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TagsCompanion extends UpdateCompanion<TagRow> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> name;
+  final Value<String> nameNorm;
+  final Value<int?> colorIndex;
+  final Value<bool> archived;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const TagsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.nameNorm = const Value.absent(),
+    this.colorIndex = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TagsCompanion.insert({
+    required String id,
+    required String profileId,
+    required String name,
+    required String nameNorm,
+    this.colorIndex = const Value.absent(),
+    this.archived = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       profileId = Value(profileId),
+       name = Value(name),
+       nameNorm = Value(nameNorm),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<TagRow> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? name,
+    Expression<String>? nameNorm,
+    Expression<int>? colorIndex,
+    Expression<bool>? archived,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (name != null) 'name': name,
+      if (nameNorm != null) 'name_norm': nameNorm,
+      if (colorIndex != null) 'color_index': colorIndex,
+      if (archived != null) 'archived': archived,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TagsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? profileId,
+    Value<String>? name,
+    Value<String>? nameNorm,
+    Value<int?>? colorIndex,
+    Value<bool>? archived,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TagsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      name: name ?? this.name,
+      nameNorm: nameNorm ?? this.nameNorm,
+      colorIndex: colorIndex ?? this.colorIndex,
+      archived: archived ?? this.archived,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (nameNorm.present) {
+      map['name_norm'] = Variable<String>(nameNorm.value);
+    }
+    if (colorIndex.present) {
+      map['color_index'] = Variable<int>(colorIndex.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('nameNorm: $nameNorm, ')
+          ..write('colorIndex: $colorIndex, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TodoTagsTable extends TodoTags
+    with TableInfo<$TodoTagsTable, TodoTagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TodoTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _todoIdMeta = const VerificationMeta('todoId');
+  @override
+  late final GeneratedColumn<String> todoId = GeneratedColumn<String>(
+    'todo_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<String> tagId = GeneratedColumn<String>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [todoId, tagId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'todo_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TodoTagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('todo_id')) {
+      context.handle(
+        _todoIdMeta,
+        todoId.isAcceptableOrUnknown(data['todo_id']!, _todoIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_todoIdMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {todoId, tagId};
+  @override
+  TodoTagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TodoTagRow(
+      todoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}todo_id'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_id'],
+      )!,
+    );
+  }
+
+  @override
+  $TodoTagsTable createAlias(String alias) {
+    return $TodoTagsTable(attachedDatabase, alias);
+  }
+}
+
+class TodoTagRow extends DataClass implements Insertable<TodoTagRow> {
+  final String todoId;
+  final String tagId;
+  const TodoTagRow({required this.todoId, required this.tagId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['todo_id'] = Variable<String>(todoId);
+    map['tag_id'] = Variable<String>(tagId);
+    return map;
+  }
+
+  TodoTagsCompanion toCompanion(bool nullToAbsent) {
+    return TodoTagsCompanion(todoId: Value(todoId), tagId: Value(tagId));
+  }
+
+  factory TodoTagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TodoTagRow(
+      todoId: serializer.fromJson<String>(json['todoId']),
+      tagId: serializer.fromJson<String>(json['tagId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'todoId': serializer.toJson<String>(todoId),
+      'tagId': serializer.toJson<String>(tagId),
+    };
+  }
+
+  TodoTagRow copyWith({String? todoId, String? tagId}) =>
+      TodoTagRow(todoId: todoId ?? this.todoId, tagId: tagId ?? this.tagId);
+  TodoTagRow copyWithCompanion(TodoTagsCompanion data) {
+    return TodoTagRow(
+      todoId: data.todoId.present ? data.todoId.value : this.todoId,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoTagRow(')
+          ..write('todoId: $todoId, ')
+          ..write('tagId: $tagId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(todoId, tagId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TodoTagRow &&
+          other.todoId == this.todoId &&
+          other.tagId == this.tagId);
+}
+
+class TodoTagsCompanion extends UpdateCompanion<TodoTagRow> {
+  final Value<String> todoId;
+  final Value<String> tagId;
+  final Value<int> rowid;
+  const TodoTagsCompanion({
+    this.todoId = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TodoTagsCompanion.insert({
+    required String todoId,
+    required String tagId,
+    this.rowid = const Value.absent(),
+  }) : todoId = Value(todoId),
+       tagId = Value(tagId);
+  static Insertable<TodoTagRow> custom({
+    Expression<String>? todoId,
+    Expression<String>? tagId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (todoId != null) 'todo_id': todoId,
+      if (tagId != null) 'tag_id': tagId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TodoTagsCompanion copyWith({
+    Value<String>? todoId,
+    Value<String>? tagId,
+    Value<int>? rowid,
+  }) {
+    return TodoTagsCompanion(
+      todoId: todoId ?? this.todoId,
+      tagId: tagId ?? this.tagId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (todoId.present) {
+      map['todo_id'] = Variable<String>(todoId.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<String>(tagId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoTagsCompanion(')
+          ..write('todoId: $todoId, ')
+          ..write('tagId: $tagId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1611,6 +3449,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $StandardEventsTable standardEvents = $StandardEventsTable(this);
   late final $TodosTable todos = $TodosTable(this);
+  late final $OwnersTable owners = $OwnersTable(this);
+  late final $OwnerRefsTable ownerRefs = $OwnerRefsTable(this);
+  late final $TagsTable tags = $TagsTable(this);
+  late final $TodoTagsTable todoTags = $TodoTagsTable(this);
   late final $TimetablePayloadsTable timetablePayloads =
       $TimetablePayloadsTable(this);
   late final $PluginStatesTable pluginStates = $PluginStatesTable(this);
@@ -1621,6 +3463,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     standardEvents,
     todos,
+    owners,
+    ownerRefs,
+    tags,
+    todoTags,
     timetablePayloads,
     pluginStates,
   ];
@@ -1889,6 +3735,8 @@ typedef $$TodosTableCreateCompanionBuilder = TodosCompanion Function({
   Value<int?> completedAt,
   required int createdAt,
   required int updatedAt,
+  Value<String> profileId,
+  Value<String> ownerId,
   Value<int> rowid,
 });
 typedef $$TodosTableUpdateCompanionBuilder = TodosCompanion Function({
@@ -1901,6 +3749,8 @@ typedef $$TodosTableUpdateCompanionBuilder = TodosCompanion Function({
   Value<int?> completedAt,
   Value<int> createdAt,
   Value<int> updatedAt,
+  Value<String> profileId,
+  Value<String> ownerId,
   Value<int> rowid,
 });
 
@@ -1954,6 +3804,16 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2011,6 +3871,16 @@ class $$TodosTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TodosTableAnnotationComposer
@@ -2050,6 +3920,12 @@ class $$TodosTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
 }
 
 class $$TodosTableTableManager
@@ -2089,6 +3965,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<String> profileId = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
                 id: id,
@@ -2100,6 +3978,8 @@ class $$TodosTableTableManager
                 completedAt: completedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                profileId: profileId,
+                ownerId: ownerId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2113,6 +3993,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAt = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
+                Value<String> profileId = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
                 id: id,
@@ -2124,6 +4006,8 @@ class $$TodosTableTableManager
                 completedAt: completedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                profileId: profileId,
+                ownerId: ownerId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2155,6 +4039,932 @@ typedef $$TodosTableProcessedTableManager =
       $$TodosTableUpdateCompanionBuilder,
       (TodoRow, BaseReferences<_$AppDatabase, $TodosTable, TodoRow>),
       TodoRow,
+      PrefetchHooks Function()
+    >;
+typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
+  required String id,
+  required String profileId,
+  required String kind,
+  required String name,
+  Value<String?> platform,
+  Value<String> origin,
+  Value<bool> nameCustom,
+  Value<int?> colorIndex,
+  Value<bool> isDefault,
+  Value<bool> archived,
+  required int createdAt,
+  required int updatedAt,
+  Value<int> rowid,
+});
+typedef $$OwnersTableUpdateCompanionBuilder = OwnersCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> kind,
+  Value<String> name,
+  Value<String?> platform,
+  Value<String> origin,
+  Value<bool> nameCustom,
+  Value<int?> colorIndex,
+  Value<bool> isDefault,
+  Value<bool> archived,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int> rowid,
+});
+
+class $$OwnersTableFilterComposer
+    extends Composer<_$AppDatabase, $OwnersTable> {
+  $$OwnersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get origin => $composableBuilder(
+    column: $table.origin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get nameCustom => $composableBuilder(
+    column: $table.nameCustom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OwnersTableOrderingComposer
+    extends Composer<_$AppDatabase, $OwnersTable> {
+  $$OwnersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get origin => $composableBuilder(
+    column: $table.origin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get nameCustom => $composableBuilder(
+    column: $table.nameCustom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OwnersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OwnersTable> {
+  $$OwnersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get origin =>
+      $composableBuilder(column: $table.origin, builder: (column) => column);
+
+  GeneratedColumn<bool> get nameCustom => $composableBuilder(
+    column: $table.nameCustom,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$OwnersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OwnersTable,
+          OwnerRow,
+          $$OwnersTableFilterComposer,
+          $$OwnersTableOrderingComposer,
+          $$OwnersTableAnnotationComposer,
+          $$OwnersTableCreateCompanionBuilder,
+          $$OwnersTableUpdateCompanionBuilder,
+          (OwnerRow, BaseReferences<_$AppDatabase, $OwnersTable, OwnerRow>),
+          OwnerRow,
+          PrefetchHooks Function()
+        > {
+  $$OwnersTableTableManager(_$AppDatabase db, $OwnersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OwnersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OwnersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OwnersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> profileId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> platform = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<bool> nameCustom = const Value.absent(),
+                Value<int?> colorIndex = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OwnersCompanion(
+                id: id,
+                profileId: profileId,
+                kind: kind,
+                name: name,
+                platform: platform,
+                origin: origin,
+                nameCustom: nameCustom,
+                colorIndex: colorIndex,
+                isDefault: isDefault,
+                archived: archived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String profileId,
+                required String kind,
+                required String name,
+                Value<String?> platform = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<bool> nameCustom = const Value.absent(),
+                Value<int?> colorIndex = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => OwnersCompanion.insert(
+                id: id,
+                profileId: profileId,
+                kind: kind,
+                name: name,
+                platform: platform,
+                origin: origin,
+                nameCustom: nameCustom,
+                colorIndex: colorIndex,
+                isDefault: isDefault,
+                archived: archived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OwnersTable, OwnerRow>(table),
+                  BaseReferences<_$AppDatabase, $OwnersTable, OwnerRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OwnersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OwnersTable,
+      OwnerRow,
+      $$OwnersTableFilterComposer,
+      $$OwnersTableOrderingComposer,
+      $$OwnersTableAnnotationComposer,
+      $$OwnersTableCreateCompanionBuilder,
+      $$OwnersTableUpdateCompanionBuilder,
+      (OwnerRow, BaseReferences<_$AppDatabase, $OwnersTable, OwnerRow>),
+      OwnerRow,
+      PrefetchHooks Function()
+    >;
+typedef $$OwnerRefsTableCreateCompanionBuilder = OwnerRefsCompanion Function({
+  required String ownerId,
+  required String profileId,
+  required String refType,
+  required String refId,
+  Value<int> rowid,
+});
+typedef $$OwnerRefsTableUpdateCompanionBuilder = OwnerRefsCompanion Function({
+  Value<String> ownerId,
+  Value<String> profileId,
+  Value<String> refType,
+  Value<String> refId,
+  Value<int> rowid,
+});
+
+class $$OwnerRefsTableFilterComposer
+    extends Composer<_$AppDatabase, $OwnerRefsTable> {
+  $$OwnerRefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refType => $composableBuilder(
+    column: $table.refType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refId => $composableBuilder(
+    column: $table.refId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OwnerRefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OwnerRefsTable> {
+  $$OwnerRefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refType => $composableBuilder(
+    column: $table.refType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refId => $composableBuilder(
+    column: $table.refId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OwnerRefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OwnerRefsTable> {
+  $$OwnerRefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get refType =>
+      $composableBuilder(column: $table.refType, builder: (column) => column);
+
+  GeneratedColumn<String> get refId =>
+      $composableBuilder(column: $table.refId, builder: (column) => column);
+}
+
+class $$OwnerRefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OwnerRefsTable,
+          OwnerRefRow,
+          $$OwnerRefsTableFilterComposer,
+          $$OwnerRefsTableOrderingComposer,
+          $$OwnerRefsTableAnnotationComposer,
+          $$OwnerRefsTableCreateCompanionBuilder,
+          $$OwnerRefsTableUpdateCompanionBuilder,
+          (
+            OwnerRefRow,
+            BaseReferences<_$AppDatabase, $OwnerRefsTable, OwnerRefRow>,
+          ),
+          OwnerRefRow,
+          PrefetchHooks Function()
+        > {
+  $$OwnerRefsTableTableManager(_$AppDatabase db, $OwnerRefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OwnerRefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OwnerRefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OwnerRefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> ownerId = const Value.absent(),
+                Value<String> profileId = const Value.absent(),
+                Value<String> refType = const Value.absent(),
+                Value<String> refId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OwnerRefsCompanion(
+                ownerId: ownerId,
+                profileId: profileId,
+                refType: refType,
+                refId: refId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String ownerId,
+                required String profileId,
+                required String refType,
+                required String refId,
+                Value<int> rowid = const Value.absent(),
+              }) => OwnerRefsCompanion.insert(
+                ownerId: ownerId,
+                profileId: profileId,
+                refType: refType,
+                refId: refId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OwnerRefsTable, OwnerRefRow>(table),
+                  BaseReferences<_$AppDatabase, $OwnerRefsTable, OwnerRefRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OwnerRefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OwnerRefsTable,
+      OwnerRefRow,
+      $$OwnerRefsTableFilterComposer,
+      $$OwnerRefsTableOrderingComposer,
+      $$OwnerRefsTableAnnotationComposer,
+      $$OwnerRefsTableCreateCompanionBuilder,
+      $$OwnerRefsTableUpdateCompanionBuilder,
+      (
+        OwnerRefRow,
+        BaseReferences<_$AppDatabase, $OwnerRefsTable, OwnerRefRow>,
+      ),
+      OwnerRefRow,
+      PrefetchHooks Function()
+    >;
+typedef $$TagsTableCreateCompanionBuilder = TagsCompanion Function({
+  required String id,
+  required String profileId,
+  required String name,
+  required String nameNorm,
+  Value<int?> colorIndex,
+  Value<bool> archived,
+  required int createdAt,
+  required int updatedAt,
+  Value<int> rowid,
+});
+typedef $$TagsTableUpdateCompanionBuilder = TagsCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> name,
+  Value<String> nameNorm,
+  Value<int?> colorIndex,
+  Value<bool> archived,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int> rowid,
+});
+
+class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameNorm => $composableBuilder(
+    column: $table.nameNorm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameNorm => $composableBuilder(
+    column: $table.nameNorm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get nameNorm =>
+      $composableBuilder(column: $table.nameNorm, builder: (column) => column);
+
+  GeneratedColumn<int> get colorIndex => $composableBuilder(
+    column: $table.colorIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TagsTable,
+          TagRow,
+          $$TagsTableFilterComposer,
+          $$TagsTableOrderingComposer,
+          $$TagsTableAnnotationComposer,
+          $$TagsTableCreateCompanionBuilder,
+          $$TagsTableUpdateCompanionBuilder,
+          (TagRow, BaseReferences<_$AppDatabase, $TagsTable, TagRow>),
+          TagRow,
+          PrefetchHooks Function()
+        > {
+  $$TagsTableTableManager(_$AppDatabase db, $TagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> profileId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> nameNorm = const Value.absent(),
+                Value<int?> colorIndex = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TagsCompanion(
+                id: id,
+                profileId: profileId,
+                name: name,
+                nameNorm: nameNorm,
+                colorIndex: colorIndex,
+                archived: archived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String profileId,
+                required String name,
+                required String nameNorm,
+                Value<int?> colorIndex = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TagsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                name: name,
+                nameNorm: nameNorm,
+                colorIndex: colorIndex,
+                archived: archived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TagsTable, TagRow>(table),
+                  BaseReferences<_$AppDatabase, $TagsTable, TagRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TagsTable,
+      TagRow,
+      $$TagsTableFilterComposer,
+      $$TagsTableOrderingComposer,
+      $$TagsTableAnnotationComposer,
+      $$TagsTableCreateCompanionBuilder,
+      $$TagsTableUpdateCompanionBuilder,
+      (TagRow, BaseReferences<_$AppDatabase, $TagsTable, TagRow>),
+      TagRow,
+      PrefetchHooks Function()
+    >;
+typedef $$TodoTagsTableCreateCompanionBuilder = TodoTagsCompanion Function({
+  required String todoId,
+  required String tagId,
+  Value<int> rowid,
+});
+typedef $$TodoTagsTableUpdateCompanionBuilder = TodoTagsCompanion Function({
+  Value<String> todoId,
+  Value<String> tagId,
+  Value<int> rowid,
+});
+
+class $$TodoTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $TodoTagsTable> {
+  $$TodoTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get todoId => $composableBuilder(
+    column: $table.todoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TodoTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TodoTagsTable> {
+  $$TodoTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get todoId => $composableBuilder(
+    column: $table.todoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TodoTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TodoTagsTable> {
+  $$TodoTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get todoId =>
+      $composableBuilder(column: $table.todoId, builder: (column) => column);
+
+  GeneratedColumn<String> get tagId =>
+      $composableBuilder(column: $table.tagId, builder: (column) => column);
+}
+
+class $$TodoTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TodoTagsTable,
+          TodoTagRow,
+          $$TodoTagsTableFilterComposer,
+          $$TodoTagsTableOrderingComposer,
+          $$TodoTagsTableAnnotationComposer,
+          $$TodoTagsTableCreateCompanionBuilder,
+          $$TodoTagsTableUpdateCompanionBuilder,
+          (
+            TodoTagRow,
+            BaseReferences<_$AppDatabase, $TodoTagsTable, TodoTagRow>,
+          ),
+          TodoTagRow,
+          PrefetchHooks Function()
+        > {
+  $$TodoTagsTableTableManager(_$AppDatabase db, $TodoTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TodoTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TodoTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TodoTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> todoId = const Value.absent(),
+            Value<String> tagId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => TodoTagsCompanion(todoId: todoId, tagId: tagId, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String todoId,
+                required String tagId,
+                Value<int> rowid = const Value.absent(),
+              }) => TodoTagsCompanion.insert(
+                todoId: todoId,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TodoTagsTable, TodoTagRow>(table),
+                  BaseReferences<_$AppDatabase, $TodoTagsTable, TodoTagRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TodoTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TodoTagsTable,
+      TodoTagRow,
+      $$TodoTagsTableFilterComposer,
+      $$TodoTagsTableOrderingComposer,
+      $$TodoTagsTableAnnotationComposer,
+      $$TodoTagsTableCreateCompanionBuilder,
+      $$TodoTagsTableUpdateCompanionBuilder,
+      (TodoTagRow, BaseReferences<_$AppDatabase, $TodoTagsTable, TodoTagRow>),
+      TodoTagRow,
       PrefetchHooks Function()
     >;
 typedef $$TimetablePayloadsTableCreateCompanionBuilder =
@@ -2545,6 +5355,13 @@ class $AppDatabaseManager {
       $$StandardEventsTableTableManager(_db, _db.standardEvents);
   $$TodosTableTableManager get todos =>
       $$TodosTableTableManager(_db, _db.todos);
+  $$OwnersTableTableManager get owners =>
+      $$OwnersTableTableManager(_db, _db.owners);
+  $$OwnerRefsTableTableManager get ownerRefs =>
+      $$OwnerRefsTableTableManager(_db, _db.ownerRefs);
+  $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
+  $$TodoTagsTableTableManager get todoTags =>
+      $$TodoTagsTableTableManager(_db, _db.todoTags);
   $$TimetablePayloadsTableTableManager get timetablePayloads =>
       $$TimetablePayloadsTableTableManager(_db, _db.timetablePayloads);
   $$PluginStatesTableTableManager get pluginStates =>
