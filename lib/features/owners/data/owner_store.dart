@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import '../model/owner.dart';
 
@@ -28,6 +28,9 @@ abstract interface class OwnerStore {
   Future<void> archive(String id);
 
   Future<void> delete(String id);
+
+  /// 删除整张课表下的归属与绑定（不处理待办）。
+  Future<void> deleteProfile(String profileId);
 }
 
 class InMemoryOwnerStore implements OwnerStore {
@@ -143,6 +146,13 @@ class InMemoryOwnerStore implements OwnerStore {
     _emit();
   }
 
+  @override
+  Future<void> deleteProfile(String profileId) async {
+    _owners.removeWhere((_, owner) => owner.profileId == profileId);
+    _refs.removeWhere((ref) => ref.profileId == profileId);
+    _emit();
+  }
+
   void _emit() {
     if (!_controller.isClosed) _controller.add(null);
   }
@@ -164,3 +174,4 @@ Owner buildDefaultOwner(String profileId, {DateTime? now}) {
     updatedAt: moment,
   );
 }
+

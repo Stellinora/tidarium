@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/timetable_store.dart';
@@ -126,6 +126,12 @@ class TimetableLibraryController extends Notifier<TimetableLibrary> {
     ref.read(selectedWeekProvider.notifier).followToday();
   }
 
+  /// 指定主课表（新任务默认归属与删除迁移的落点）。
+  Future<void> setPrimaryTimetable(String id) async {
+    if (state.find(id) == null) return;
+    await _commit(state.copyWith(primaryId: id));
+  }
+
   Future<void> renameTimetable(String id, String name) async {
     final trimmedName = name.trim();
     final target = state.find(id);
@@ -189,3 +195,4 @@ class SelectedWeekController extends Notifier<int?> {
 final selectedWeekProvider = NotifierProvider<SelectedWeekController, int?>(
   SelectedWeekController.new,
 );
+

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import '../model/tag.dart';
 
@@ -17,6 +17,9 @@ abstract interface class TagStore {
   });
 
   Future<void> delete(String id);
+
+  /// 删除整张课表下的标签与关联。
+  Future<void> deleteProfile(String profileId);
 
   Future<List<String>> tagIdsOf(String todoId);
 
@@ -131,7 +134,21 @@ class InMemoryTagStore implements TagStore {
     _emit();
   }
 
+  @override
+  Future<void> deleteProfile(String profileId) async {
+    final ids = _tags.values
+        .where((tag) => tag.profileId == profileId)
+        .map((tag) => tag.id)
+        .toSet();
+    _tags.removeWhere((_, tag) => tag.profileId == profileId);
+    for (final entry in _links.entries) {
+      entry.value.removeWhere(ids.contains);
+    }
+    _emit();
+  }
+
   void _emit() {
     if (!_controller.isClosed) _controller.add(null);
   }
 }
+

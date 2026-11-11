@@ -69,8 +69,7 @@ class DriftTodoStore implements TodoStore {
     required Iterable<String> fromOwnerIds,
     required String toOwnerId,
     required String profileId,
-  }) {
-    final sources = fromOwnerIds.toList(growable: false);
+  }) {    final sources = fromOwnerIds.toList(growable: false);
     if (sources.isEmpty) return Future<int>.value(0);
 
     return (_db.update(_db.todos)..where(
@@ -84,6 +83,42 @@ class DriftTodoStore implements TodoStore {
             updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
           ),
         );
+  }
+
+  @override
+  Future<int> moveToProfile({
+    required String fromProfileId,
+    required String toProfileId,
+    required String ownerId,
+  }) {
+    return (_db.update(_db.todos)..where(
+          (table) => table.profileId.equals(fromProfileId),
+        ))
+        .write(
+          TodosCompanion(
+            profileId: Value(toProfileId),
+            ownerId: Value(ownerId),
+            updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+          ),
+        );
+  }
+
+  @override
+  Future<int> deleteProfile(String profileId) async {
+    final ids = await (_db.selectOnly(_db.todos)
+          ..addColumns([_db.todos.id])
+          ..where(_db.todos.profileId.equals(profileId)))
+        .map((row) => row.read(_db.todos.id))
+        .get();
+    if (ids.isEmpty) return 0;
+
+    final deleted = await (_db.delete(
+      _db.todos,
+    )..where((table) => table.profileId.equals(profileId))).go();
+    await (_db.delete(
+      _db.todoTags,
+    )..where((table) => table.todoId.isIn(ids.whereType<String>()))).go();
+    return deleted;
   }
 
   TodoItem _toItem(TodoRow row) {

@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+﻿import 'package:drift/drift.dart';
 
 import '../../../core/db/app_database.dart';
 import '../model/tag.dart';
@@ -141,6 +141,24 @@ class DriftTagStore implements TagStore {
     }
   }
 
+  @override
+  Future<void> deleteProfile(String profileId) async {
+    final ids = await (_db.selectOnly(_db.tags)
+          ..addColumns([_db.tags.id])
+          ..where(_db.tags.profileId.equals(profileId)))
+        .map((row) => row.read(_db.tags.id))
+        .get();
+    final tagIds = ids.whereType<String>().toList(growable: false);
+    if (tagIds.isNotEmpty) {
+      await (_db.delete(
+        _db.todoTags,
+      )..where((table) => table.tagId.isIn(tagIds))).go();
+    }
+    await (_db.delete(
+      _db.tags,
+    )..where((table) => table.profileId.equals(profileId))).go();
+  }
+
   Tag _toTag(TagRow row) {
     return Tag(
       id: row.id,
@@ -153,3 +171,4 @@ class DriftTagStore implements TagStore {
     );
   }
 }
+

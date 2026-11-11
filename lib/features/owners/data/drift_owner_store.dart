@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+﻿import 'package:drift/drift.dart';
 
 import '../../../core/db/app_database.dart';
 import '../model/owner.dart';
@@ -153,6 +153,16 @@ class DriftOwnerStore implements OwnerStore {
     )..where((table) => table.ownerId.equals(id))).go();
   }
 
+  @override
+  Future<void> deleteProfile(String profileId) async {
+    await (_db.delete(
+      _db.ownerRefs,
+    )..where((table) => table.profileId.equals(profileId))).go();
+    await (_db.delete(
+      _db.owners,
+    )..where((table) => table.profileId.equals(profileId))).go();
+  }
+
   Owner _toOwner(OwnerRow row) {
     return Owner(
       id: row.id,
@@ -170,3 +180,4 @@ class DriftOwnerStore implements OwnerStore {
     );
   }
 }
+

@@ -18,6 +18,16 @@ abstract interface class TodoStore {
     required String toOwnerId,
     required String profileId,
   });
+
+  /// 把一个课表下的待办整体迁到另一个课表，并统一改挂到指定归属。
+  Future<int> moveToProfile({
+    required String fromProfileId,
+    required String toProfileId,
+    required String ownerId,
+  });
+
+  /// 删除某个课表下的全部待办，返回删除条数。
+  Future<int> deleteProfile(String profileId);
 }
 
 class InMemoryTodoStore implements TodoStore {
@@ -82,6 +92,37 @@ class InMemoryTodoStore implements TodoStore {
     return changed;
   }
 
+  @override
+  Future<int> moveToProfile({
+    required String fromProfileId,
+    required String toProfileId,
+    required String ownerId,
+  }) async {
+    final now = DateTime.now();
+    var changed = 0;
+    for (final entry in _items.entries.toList(growable: false)) {
+      final item = entry.value;
+      if (item.profileId != fromProfileId) continue;
+      _items[entry.key] = item.copyWith(
+        profileId: toProfileId,
+        ownerId: ownerId,
+        updatedAt: now,
+      );
+      changed += 1;
+    }
+    if (changed > 0) _emit();
+    return changed;
+  }
+
+  @override
+  Future<int> deleteProfile(String profileId) async {
+    final before = _items.length;
+    _items.removeWhere((_, item) => item.profileId == profileId);
+    final changed = before - _items.length;
+    if (changed > 0) _emit();
+    return changed;
+  }
+
   List<TodoItem> _sorted({String? profileId}) {
     final items = _items.values
         .where(
@@ -106,6 +147,7 @@ class InMemoryTodoStore implements TodoStore {
     }
   }
 }
+
 
 
 
