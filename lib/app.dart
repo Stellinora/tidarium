@@ -5,12 +5,15 @@ import 'features/shell/app_shell.dart';
 import 'ui/theme.dart';
 
 class TidariumApp extends StatelessWidget {
-  const TidariumApp({super.key});
+  const TidariumApp({super.key, this.navigatorKey});
+
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Tidarium',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildTidariumTheme(Brightness.light),
       darkTheme: buildTidariumTheme(Brightness.dark),

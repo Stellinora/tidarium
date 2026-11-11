@@ -21,7 +21,8 @@ val hasReleaseSigning = keystorePropertiesFile.exists() &&
 
 android {
     namespace = "io.github.stellinora.tidarium"
-    compileSdk = flutter.compileSdkVersion
+    // receive_sharing_intent 要求 compileSdk >= 37，高于 Flutter 默认值。
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
