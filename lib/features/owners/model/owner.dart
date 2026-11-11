@@ -1,4 +1,4 @@
-/// 归属的大类。一个任务只属于一个归属，归属按课表 profile 隔离。
+﻿/// 归属的大类。一个任务只属于一个归属，归属按课表 profile 隔离。
 enum OwnerKind {
   course,
   onlineCourse,
@@ -172,6 +172,13 @@ class Owner {
 }
 
 /// 课程绑定：一个归属可以绑定多个 course.id（理论课 + 实验课合并后）。
+var _ownerIdSeed = 0;
+
+String newOwnerId() {
+  _ownerIdSeed += 1;
+  return 'owner_${DateTime.now().microsecondsSinceEpoch}_$_ownerIdSeed';
+}
+
 class OwnerRef {
   const OwnerRef({
     required this.ownerId,
@@ -206,3 +213,4 @@ void validateOwnerPlatform(OwnerKind kind, OnlinePlatform? platform) {
     throw OwnerValidationError('只有网课归属可以设置平台');
   }
 }
+

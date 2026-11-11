@@ -64,6 +64,28 @@ class DriftTodoStore implements TodoStore {
     return (_db.delete(_db.todos)..where((table) => table.id.equals(id))).go();
   }
 
+  @override
+  Future<int> reassignOwner({
+    required Iterable<String> fromOwnerIds,
+    required String toOwnerId,
+    required String profileId,
+  }) {
+    final sources = fromOwnerIds.toList(growable: false);
+    if (sources.isEmpty) return Future<int>.value(0);
+
+    return (_db.update(_db.todos)..where(
+          (table) =>
+              table.profileId.equals(profileId) &
+              table.ownerId.isIn(sources),
+        ))
+        .write(
+          TodosCompanion(
+            ownerId: Value(toOwnerId),
+            updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+          ),
+        );
+  }
+
   TodoItem _toItem(TodoRow row) {
     return TodoItem(
       id: row.id,

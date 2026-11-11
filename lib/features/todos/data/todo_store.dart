@@ -11,6 +11,13 @@ abstract interface class TodoStore {
   Future<void> upsert(TodoItem item);
 
   Future<void> delete(String id);
+
+  /// 把一组归属下的待办整体改挂到另一个归属，返回改动条数。
+  Future<int> reassignOwner({
+    required Iterable<String> fromOwnerIds,
+    required String toOwnerId,
+    required String profileId,
+  });
 }
 
 class InMemoryTodoStore implements TodoStore {
@@ -53,6 +60,28 @@ class InMemoryTodoStore implements TodoStore {
     _emit();
   }
 
+  @override
+  Future<int> reassignOwner({
+    required Iterable<String> fromOwnerIds,
+    required String toOwnerId,
+    required String profileId,
+  }) async {
+    final sources = fromOwnerIds.toSet();
+    var changed = 0;
+    for (final entry in _items.entries.toList(growable: false)) {
+      final item = entry.value;
+      if (item.profileId != profileId) continue;
+      if (!sources.contains(item.ownerId)) continue;
+      _items[entry.key] = item.copyWith(
+        ownerId: toOwnerId,
+        updatedAt: DateTime.now(),
+      );
+      changed += 1;
+    }
+    if (changed > 0) _emit();
+    return changed;
+  }
+
   List<TodoItem> _sorted({String? profileId}) {
     final items = _items.values
         .where(
@@ -77,5 +106,6 @@ class InMemoryTodoStore implements TodoStore {
     }
   }
 }
+
 
 

@@ -13,6 +13,7 @@ import 'features/intake/share_intake_service.dart';
 import 'features/owners/data/drift_owner_store.dart';
 import 'features/owners/data/owner_store.dart';
 import 'features/owners/owner_providers.dart';
+import 'features/owners/owner_sync.dart';
 import 'features/profiles/storage_bootstrap.dart';
 import 'features/tags/data/drift_tag_store.dart';
 import 'features/tags/data/tag_store.dart';
@@ -62,6 +63,11 @@ Future<void> main() async {
         owners: ownerStore,
         library: library,
       ).run();
+
+      final sync = OwnerSync(ownerStore: ownerStore, todoStore: todoStore);
+      for (final timetable in library.timetables) {
+        await sync.syncFromTimetable(timetable);
+      }
     } catch (error) {
       debugPrint('Storage bootstrap failed: $error');
     }
@@ -119,4 +125,5 @@ Future<void> main() async {
     ),
   );
 }
+
 
