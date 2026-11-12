@@ -126,6 +126,11 @@ class TimetableLibraryController extends Notifier<TimetableLibrary> {
     ref.read(selectedWeekProvider.notifier).followToday();
   }
 
+  /// 整体替换课表集合（删除策略执行后使用）。
+  Future<void> replaceLibrary(TimetableLibrary library) {
+    return _commit(library);
+  }
+
   /// 指定主课表（新任务默认归属与删除迁移的落点）。
   Future<void> setPrimaryTimetable(String id) async {
     if (state.find(id) == null) return;
@@ -195,4 +200,5 @@ class SelectedWeekController extends Notifier<int?> {
 final selectedWeekProvider = NotifierProvider<SelectedWeekController, int?>(
   SelectedWeekController.new,
 );
+
 

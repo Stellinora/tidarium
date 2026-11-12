@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../profiles/profile_lifecycle.dart';
+import '../profiles/profile_providers.dart';
 import 'model/timetable_data.dart';
 import 'model/timetable_library.dart';
 import 'timetable_providers.dart';
@@ -37,6 +39,7 @@ class TimetableManagerPage extends ConsumerWidget {
             _TimetableCard(
               timetable: timetable,
               active: timetable.id == library.activeId,
+              primary: timetable.id == library.primaryId,
               canDelete: library.timetables.length > 1,
               onTap: () async {
                 await controller.selectTimetable(timetable.id);
@@ -44,11 +47,14 @@ class TimetableManagerPage extends ConsumerWidget {
               },
               onSettings: () => _openSettings(context, ref, timetable),
               onRename: () => _renameTimetable(context, ref, timetable),
+              onSetPrimary: () => ref
+                  .read(timetableLibraryProvider.notifier)
+                  .setPrimaryTimetable(timetable.id),
               onDelete: () => _deleteTimetable(
                 context,
                 ref,
                 timetable,
-                library.timetables.length > 1,
+                library,
               ),
             ),
         ],
@@ -107,39 +113,65 @@ class TimetableManagerPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     TimetableData timetable,
-    bool canDelete,
+    TimetableLibrary library,
   ) async {
+    final canDelete = library.timetables.length > 1;
     if (!canDelete) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('至少保留一个课表')));
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final strategy = await showDialog<ProfileDeleteStrategy>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('删除课表'),
         content: Text(
-          '确定删除「${timetable.config.name}」吗？'
-          '其中的 ${timetable.courses.length} 门课程也会一并删除。',
+          '「${timetable.config.name}」下有 ${timetable.courses.length} 门课程。'
+          '这张课表的待办怎么处理？',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('取消'),
           ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext)
+                .pop(ProfileDeleteStrategy.deleteAll),
+            child: const Text('一并删除'),
+          ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('删除'),
+            autofocus: true,
+            onPressed: () => Navigator.of(dialogContext)
+                .pop(ProfileDeleteStrategy.migrateToPrimary),
+            child: const Text('迁移到主课表'),
           ),
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (strategy == null || !context.mounted) return;
 
-    await ref
-        .read(timetableLibraryProvider.notifier)
-        .deleteTimetable(timetable.id);
+    try {
+      final outcome = await ref
+          .read(profileLifecycleProvider)
+          .deleteProfile(
+            library: ref.read(timetableLibraryProvider),
+            profileId: timetable.id,
+            strategy: strategy,
+          );
+      await ref
+          .read(timetableLibraryProvider.notifier)
+          .replaceLibrary(outcome.library);
+      if (!context.mounted) return;
+      final message = strategy == ProfileDeleteStrategy.migrateToPrimary
+          ? '已删除，迁移 ${outcome.movedTodos} 条待办'
+          : '已删除，清除 ${outcome.deletedTodos} 条待办';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } on ProfileLifecycleError catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 
   Future<String?> _askName(
@@ -185,19 +217,23 @@ class _TimetableCard extends StatelessWidget {
   const _TimetableCard({
     required this.timetable,
     required this.active,
+    required this.primary,
     required this.canDelete,
     required this.onTap,
     required this.onSettings,
     required this.onRename,
+    required this.onSetPrimary,
     required this.onDelete,
   });
 
   final TimetableData timetable;
   final bool active;
+  final bool primary;
   final bool canDelete;
   final VoidCallback onTap;
   final VoidCallback onSettings;
   final VoidCallback onRename;
+  final VoidCallback onSetPrimary;
   final VoidCallback onDelete;
 
   @override
@@ -221,7 +257,8 @@ class _TimetableCard extends StatelessWidget {
         title: Text(timetable.config.name),
         subtitle: Text(
           '${timetable.courses.length} 门课程 · '
-          '${timetable.timeSlots.length} 个时间段',
+          '${timetable.timeSlots.length} 个时间段'
+          '${primary ? ' · 主课表' : ''}',
         ),
         trailing: PopupMenuButton<_TableAction>(
           tooltip: '更多操作',
@@ -231,6 +268,8 @@ class _TimetableCard extends StatelessWidget {
                 onSettings();
               case _TableAction.rename:
                 onRename();
+              case _TableAction.setPrimary:
+                onSetPrimary();
               case _TableAction.delete:
                 onDelete();
             }
@@ -253,6 +292,15 @@ class _TimetableCard extends StatelessWidget {
               ),
             ),
             PopupMenuItem(
+              value: _TableAction.setPrimary,
+              enabled: !primary,
+              child: const ListTile(
+                leading: Icon(Icons.star_outline),
+                title: Text('设为主课表'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
               value: _TableAction.delete,
               enabled: canDelete,
               child: const ListTile(
@@ -269,4 +317,6 @@ class _TimetableCard extends StatelessWidget {
   }
 }
 
-enum _TableAction { settings, rename, delete }
+enum _TableAction { settings, rename, setPrimary, delete }
+
+
