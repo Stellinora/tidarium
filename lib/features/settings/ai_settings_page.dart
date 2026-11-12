@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/ai/ai_settings.dart';
 import '../../core/ai/probes.dart';
@@ -22,6 +22,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   final _keyController = TextEditingController();
   final _textModelController = TextEditingController();
   final _visionModelController = TextEditingController();
+  final _fastModelController = TextEditingController();
 
   AiSettings _settings = const AiSettings();
   String? _existingKeyMasked;
@@ -51,6 +52,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       _baseUrlController.text = settings.baseUrl;
       _textModelController.text = settings.textModel;
       _visionModelController.text = settings.visionModel;
+      _fastModelController.text = settings.fastModel;
       _existingKeyMasked = key == null
           ? null
           : AiSettingsRepository.maskKey(key);
@@ -64,6 +66,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     _keyController.dispose();
     _textModelController.dispose();
     _visionModelController.dispose();
+    _fastModelController.dispose();
     super.dispose();
   }
 
@@ -91,6 +94,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       baseUrl: baseUrl,
       textModel: _textModelController.text.trim(),
       visionModel: _visionModelController.text.trim(),
+      fastModel: _fastModelController.text.trim(),
     );
   }
 
@@ -258,6 +262,15 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           ),
           const SizedBox(height: 12),
           TextField(
+            controller: _fastModelController,
+            decoration: const InputDecoration(
+              labelText: '快速模型（可选）',
+              hintText: '用于抽取，例如 glm-4-flash；留空则用文本模型',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
             controller: _visionModelController,
             decoration: const InputDecoration(
               labelText: '视觉模型',
@@ -377,3 +390,4 @@ class _ProbeTile extends StatelessWidget {
     );
   }
 }
+

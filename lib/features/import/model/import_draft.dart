@@ -1,4 +1,4 @@
-import '../../owners/model/owner.dart';
+﻿import '../../owners/model/owner.dart';
 
 /// 抽取出来的一条草稿。默认不会被写入，必须由用户勾选确认。
 class ImportDraft {
@@ -8,6 +8,7 @@ class ImportDraft {
     this.dueAt,
     this.dueText = '',
     this.kind = OwnerKind.personal,
+    this.ownerId,
     this.materials = const [],
     this.source = '',
     this.confidence = 0.5,
@@ -44,6 +45,9 @@ class ImportDraft {
       dueAt: dueAt,
       dueText: rawDue ?? '',
       kind: OwnerKind.parse(json['type']?.toString()),
+      ownerId: (json['ownerId']?.toString().trim().isEmpty ?? true)
+          ? null
+          : json['ownerId'].toString().trim(),
       materials: List.unmodifiable(materials),
       source: json['source']?.toString() ?? '',
       confidence: confidence,
@@ -56,6 +60,9 @@ class ImportDraft {
   final DateTime? dueAt;
   final String dueText;
   final OwnerKind kind;
+
+  /// 模型从归属清单里选出的归属 id；为空表示需要回退或人工选择。
+  final String? ownerId;
   final List<String> materials;
   final String source;
   final double confidence;
@@ -71,6 +78,8 @@ class ImportDraft {
     bool clearDueAt = false,
     String? dueText,
     OwnerKind? kind,
+    String? ownerId,
+    bool clearOwnerId = false,
     List<String>? materials,
     String? source,
     double? confidence,
@@ -82,6 +91,7 @@ class ImportDraft {
       dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       dueText: dueText ?? this.dueText,
       kind: kind ?? this.kind,
+      ownerId: clearOwnerId ? null : (ownerId ?? this.ownerId),
       materials: materials ?? this.materials,
       source: source ?? this.source,
       confidence: confidence ?? this.confidence,
@@ -95,6 +105,7 @@ class ImportDraft {
       'title': title,
       'dueAt': dueAt?.toIso8601String(),
       'type': kind.name,
+      'ownerId': ownerId,
       'materials': materials,
       'source': source,
       'confidence': confidence,
@@ -108,3 +119,4 @@ String newDraftId() {
   _draftIdSeed += 1;
   return 'draft_${DateTime.now().microsecondsSinceEpoch}_$_draftIdSeed';
 }
+

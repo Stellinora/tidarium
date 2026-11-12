@@ -12,6 +12,7 @@ abstract interface class LlmClient {
     required String? apiKey,
     required String prompt,
     Map<String, Object?>? schema,
+    String? model,
   });
 
   Future<String> completeVision({
@@ -56,11 +57,14 @@ class OpenAiCompatLlmClient implements LlmClient {
     required String? apiKey,
     required String prompt,
     Map<String, Object?>? schema,
+    String? model,
   }) async {
     final content = await _chat(
       settings: settings,
       apiKey: apiKey,
-      model: settings.textModel,
+      model: (model == null || model.trim().isEmpty)
+          ? settings.textModel
+          : model.trim(),
       messages: [
         {
           'role': 'user',
@@ -302,5 +306,6 @@ String? _finishReason(dynamic data) {
   }
   return null;
 }
+
 
 

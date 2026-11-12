@@ -1,61 +1,55 @@
-/// 三段式提示词：角色、字段与格式、规则与反例。
-/// 固定文案便于在项目文档里原样引用。
+import '../owners/model/owner.dart';
+
+/// OCR 提示词：尽量短，减少输入 token 与生成时的额外解释。
 String buildOcrPrompt() {
-  return '''
-你是一个 OCR 工具。
-任务：把图片里所有文字按原顺序转录出来。
-规则：
-1. 只输出文字本身，不要总结、不要解释、不要补全。
-2. 保留换行；看不清的字用 □ 代替。
-3. 不要输出图片里没有的内容。
-''';
+  return '逐行转录图片中的文字，保留换行与数字，看不清写 □。'
+      '只输出文字，不要解释。';
 }
 
+/// 抽取提示词：把归属清单交给模型，要求只返回标准 JSON。
 String buildExtractPrompt({
   required String text,
   required DateTime today,
   required String profileName,
+  required List<Owner> owners,
 }) {
   final todayText =
-      '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      '${today.year}-${today.month.toString().padLeft(2, '0')}-'
+      '${today.day.toString().padLeft(2, '0')}';
+
+  final ownerLines = owners.isEmpty
+      ? '（无可用归属，ownerId 一律填 null）'
+      : owners
+            .map(
+              (owner) => owner.isOnlineCourse
+                  ? '{"id":"${owner.id}","name":"${owner.name}",'
+                        '"kind":"${owner.kind.name}","platform":"${owner.platform?.name ?? ''}"}'
+                  : '{"id":"${owner.id}","name":"${owner.name}",'
+                        '"kind":"${owner.kind.name}"}',
+            )
+            .join('\n');
 
   return '''
-你是校园事务助手，负责把群通知整理成待办草稿。
+把下面的校园通知整理成待办，只输出 JSON。
 
 今天是 $todayText，当前课表：$profileName。
 
-输入文本：
+可用归属（ownerId 只能从这里选，选不到填 null，不许编造）：
+$ownerLines
+
+通知原文：
 """
 $text
 """
 
-请输出 JSON 对象，格式如下：
-{
-  "items": [
-    {
-      "title": "待办标题，去掉时间和客套话，不超过 20 字",
-      "type": "course | onlineCourse | studentUnion | club | personal | other",
-      "dueAt": "YYYY-MM-DDTHH:mm:ss 或 null",
-      "materials": ["需要提交的材料，没有就空数组"],
-      "source": "谁发的或哪个群，可留空",
-      "confidence": 0.0 到 1.0 的数字
-    }
-  ]
-}
+输出格式：
+{"items":[{"title":"","ownerId":null,"dueAt":null,"materials":[],"source":"","confidence":0.0}]}
 
-规则（必须遵守）：
-1. 只提取明确出现的事项。文本里没有的事项不要编造。
-2. dueAt 只能来自文本中明确写出的日期或时间；没有写就填 null，不要猜测。
-   - 「11月20日」且未写时刻 → 当天 23:59:00
-   - 「第13-14周」这类相对周次无法换算 → 填 null
-   - 可以换算「今天/明天/后天」，但必须以 $todayText 为基准
-3. 一条通知里有多个事项时，拆成多条。
-4. 归属按语义判断：课程作业 → course；学习通/MOOC 等网课 → onlineCourse；学生会 → studentUnion；社团 → club；其余 → personal 或 other。
-5. 不要输出 JSON 以外的任何文字。
-
-反例（不要这样）：
-- 文本没写时间，却填了今天 23:59 → 错，应填 null
-- 把「请大家注意」当成一条待办 → 错，应忽略
-- 把一条通知里的两个截止时间合并成一条 → 错，应拆开
+规则：
+1. 只提取明确出现的事项，不要编造。
+2. dueAt 只能来自原文；没写就填 null，不要猜。写成 YYYY-MM-DDTHH:mm:ss。
+3. 一条通知有多个事项时拆成多条。
+4. title 去掉时间与客套话，不超过 20 字。
+5. 反例：原文没写时间却填了今天 23:59 —— 错，应填 null。
 ''';
 }

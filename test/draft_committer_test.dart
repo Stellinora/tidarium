@@ -1,10 +1,11 @@
-import 'package:drift/native.dart';
+﻿import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tidarium/core/db/app_database.dart';
 import 'package:tidarium/features/import/draft_committer.dart';
 import 'package:tidarium/features/import/model/import_draft.dart';
 import 'package:tidarium/features/owners/data/drift_owner_store.dart';
 import 'package:tidarium/features/owners/data/owner_store.dart';
+import 'package:tidarium/features/owners/model/owner.dart';
 import 'package:tidarium/features/tags/data/drift_tag_store.dart';
 import 'package:tidarium/features/todos/data/drift_todo_store.dart';
 import 'package:tidarium/features/todos/model/todo_item.dart';
@@ -14,12 +15,16 @@ ImportDraft _draft(
   String title, {
   DateTime? dueAt,
   List<String> materials = const [],
+  String? ownerId,
+  OwnerKind kind = OwnerKind.personal,
 }) {
   return ImportDraft(
     id: id,
     title: title,
     dueAt: dueAt,
     materials: materials,
+    ownerId: ownerId,
+    kind: kind,
   );
 }
 
@@ -130,6 +135,104 @@ void main() {
     expect(result.conflicts, 1);
   });
 
+  test('使用模型给出的归属 id', () async {
+    final now = DateTime(2026, 11, 10);
+    final course = Owner(
+      id: 'o_course',
+      profileId: 'p1',
+      kind: OwnerKind.course,
+      name: '数据结构',
+      createdAt: now,
+      updatedAt: now,
+    );
+    await owners.upsert(course);
+
+    final result = await committer.commit(
+      drafts: [
+        _draft(
+          'd1',
+          '交数据结构作业',
+          dueAt: DateTime(2026, 11, 24, 23, 59),
+          ownerId: 'o_course',
+          kind: OwnerKind.course,
+        ),
+      ],
+      profileId: 'p1',
+    );
+
+    expect(result.inserted, 1);
+    expect((await todos.all(profileId: 'p1')).single.ownerId, 'o_course');
+  });
+
+  test('模型没给归属时，同类型只有一个归属就回落到它', () async {
+    final now = DateTime(2026, 11, 10);
+    await owners.upsert(
+      Owner(
+        id: 'o_club',
+        profileId: 'p1',
+        kind: OwnerKind.club,
+        name: 'ACM 集训队',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await committer.commit(
+      drafts: [
+        _draft(
+          'd1',
+          '社团例会',
+          dueAt: DateTime(2026, 11, 25, 23, 59),
+          kind: OwnerKind.club,
+        ),
+      ],
+      profileId: 'p1',
+    );
+
+    expect((await todos.all(profileId: 'p1')).single.ownerId, 'o_club');
+  });
+
+  test('无法判断归属时落到默认组', () async {
+    final now = DateTime(2026, 11, 10);
+    await owners.upsert(
+      Owner(
+        id: 'o_a',
+        profileId: 'p1',
+        kind: OwnerKind.course,
+        name: '数据结构',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await owners.upsert(
+      Owner(
+        id: 'o_b',
+        profileId: 'p1',
+        kind: OwnerKind.course,
+        name: '高等数学',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await committer.commit(
+      drafts: [
+        _draft(
+          'd1',
+          '某门课作业',
+          dueAt: DateTime(2026, 11, 26, 23, 59),
+          kind: OwnerKind.course,
+        ),
+      ],
+      profileId: 'p1',
+    );
+
+    expect(
+      (await todos.all(profileId: 'p1')).single.ownerId,
+      defaultOwnerId('p1'),
+    );
+  });
+
   test('材料写入备注，标签挂到新待办', () async {
     final due = DateTime(2026, 11, 23, 23, 59);
     final result = await committer.commit(
@@ -146,3 +249,4 @@ void main() {
     expect(await tags.tagIdsOf(saved.id), hasLength(2));
   });
 }
+

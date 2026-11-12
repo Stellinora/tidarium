@@ -180,7 +180,7 @@ class AiProbes {
       '${settings.normalizedBaseUrl}/chat/completions',
       options: _headers(apiKey),
       data: {
-        'model': settings.textModel,
+        'model': settings.extractionModel,
         'messages': [
           {'role': 'user', 'content': 'ping'},
         ],
@@ -233,6 +233,7 @@ class AiProbes {
     }
   }
 }
+
 
 
 

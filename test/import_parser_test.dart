@@ -9,6 +9,7 @@ import 'package:tidarium/features/import/import_pipeline.dart';
 import 'package:tidarium/features/intake/image_intake.dart';
 import 'package:tidarium/features/owners/model/owner.dart';
 
+
 class _FakeClient implements LlmClient {
   _FakeClient({
     this.textJson,
@@ -31,6 +32,7 @@ class _FakeClient implements LlmClient {
     required String? apiKey,
     required String prompt,
     Map<String, Object?>? schema,
+    String? model,
   }) async {
     textCalls += 1;
     if (textError != null) throw LlmException(textError!);
@@ -67,6 +69,8 @@ ImageIntake _image() {
 }
 
 void main() {
+  setUp(ImportPipeline.clearCache);
+
   group('ImportParser', () {
     test('解析出多条草稿，缺时间的标记待补', () async {
       final client = _FakeClient(
@@ -107,6 +111,41 @@ void main() {
       expect(result.drafts.last.needsTime, isTrue);
       expect(result.drafts.last.warnings, contains('时间待补'));
       expect(result.drafts.last.isLowConfidence, isTrue);
+    });
+
+    test('有效 ownerId 保留，编造的 id 丢弃并标记待选', () async {
+      final now = DateTime(2026, 11, 10);
+      final owners = [
+        Owner(
+          id: 'o1',
+          profileId: 'p1',
+          kind: OwnerKind.course,
+          name: '数据结构',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ];
+      final client = _FakeClient(
+        textJson: {
+          'items': [
+            {'title': '交作业', 'ownerId': 'o1', 'dueAt': null},
+            {'title': '社团开会', 'ownerId': 'owner_fake', 'dueAt': null},
+          ],
+        },
+      );
+      final parser = ImportParser(client: client);
+
+      final result = await parser.parseText(
+        text: '两条',
+        settings: _settings,
+        apiKey: null,
+        owners: owners,
+      );
+
+      expect(result.drafts.first.ownerId, 'o1');
+      expect(result.drafts.first.kind, OwnerKind.course);
+      expect(result.drafts.last.ownerId, isNull);
+      expect(result.drafts.last.warnings, contains('归属待选'));
     });
 
     test('空标题被丢弃，最多保留 10 条', () async {
@@ -251,4 +290,7 @@ void main() {
     });
   });
 }
+
+
+
 

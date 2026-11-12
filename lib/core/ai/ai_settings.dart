@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -34,6 +34,7 @@ class AiSettings {
     this.baseUrl = 'https://api.deepseek.com/v1',
     this.textModel = '',
     this.visionModel = '',
+    this.fastModel = '',
     this.ocrMode = OcrMode.visionModel,
     this.externalOcrUrl = '',
   });
@@ -44,6 +45,7 @@ class AiSettings {
       baseUrl: json['baseUrl']?.toString() ?? '',
       textModel: json['textModel']?.toString() ?? '',
       visionModel: json['visionModel']?.toString() ?? '',
+      fastModel: json['fastModel']?.toString() ?? '',
       ocrMode: OcrMode.parse(json['ocrMode']?.toString()),
       externalOcrUrl: json['externalOcrUrl']?.toString() ?? '',
     );
@@ -53,6 +55,9 @@ class AiSettings {
   final String baseUrl;
   final String textModel;
   final String visionModel;
+
+  /// 抽取阶段优先使用的轻量模型；留空则回落到 textModel。
+  final String fastModel;
   final OcrMode ocrMode;
   final String externalOcrUrl;
 
@@ -63,6 +68,10 @@ class AiSettings {
   bool get hasTextModel => textModel.trim().isNotEmpty;
   bool get hasVisionModel => visionModel.trim().isNotEmpty;
 
+  /// 抽取阶段实际使用的模型：快速模型优先。
+  String get extractionModel =>
+      fastModel.trim().isEmpty ? textModel.trim() : fastModel.trim();
+
   bool get isReadyForText => normalizedBaseUrl.isNotEmpty && hasTextModel;
   bool get isReadyForVision => normalizedBaseUrl.isNotEmpty && hasVisionModel;
 
@@ -71,6 +80,7 @@ class AiSettings {
     String? baseUrl,
     String? textModel,
     String? visionModel,
+    String? fastModel,
     OcrMode? ocrMode,
     String? externalOcrUrl,
   }) {
@@ -79,6 +89,7 @@ class AiSettings {
       baseUrl: baseUrl ?? this.baseUrl,
       textModel: textModel ?? this.textModel,
       visionModel: visionModel ?? this.visionModel,
+      fastModel: fastModel ?? this.fastModel,
       ocrMode: ocrMode ?? this.ocrMode,
       externalOcrUrl: externalOcrUrl ?? this.externalOcrUrl,
     );
@@ -90,6 +101,7 @@ class AiSettings {
       'baseUrl': baseUrl,
       'textModel': textModel,
       'visionModel': visionModel,
+      'fastModel': fastModel,
       'ocrMode': ocrMode.name,
       'externalOcrUrl': externalOcrUrl,
     };
@@ -166,3 +178,4 @@ class AiSettingsRepository {
     return '••••••${key.substring(key.length - 4)}';
   }
 }
+
