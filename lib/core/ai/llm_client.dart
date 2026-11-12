@@ -145,6 +145,7 @@ class OpenAiCompatLlmClient implements LlmClient {
         'messages': messages,
         'temperature': 0.1,
         if (jsonMode) 'response_format': {'type': 'json_object'},
+        if (isVision) 'max_tokens': 2048,
       },
     );
 
@@ -176,25 +177,17 @@ class OpenAiCompatLlmClient implements LlmClient {
       throw LlmException('模型请求失败（HTTP $code）$suffix');
     }
 
-    final data = response.data;
-    if (data is Map && data['choices'] is List) {
-      final choices = data['choices'] as List;
-      if (choices.isNotEmpty) {
-        final message = (choices.first as Map)['message'];
-        if (message is Map) {
-          final content = message['content'];
-          if (content is String) return content;
-          if (content is List) {
-            return content
-                .whereType<Map>()
-                .map((part) => part['text'])
-                .whereType<String>()
-                .join();
-          }
-        }
-      }
-    }
-    throw LlmException('模型返回格式不符合预期');
+    final text = extractAssistantText(response.data);
+    if (text != null && text.trim().isNotEmpty) return text;
+
+    final finishReason = _finishReason(response.data);
+    debugPrint('ai: empty content model=$model finish=${finishReason ?? ''}');
+    throw LlmException(
+      '模型返回空内容'
+      '${finishReason == null ? '' : '（finish_reason=$finishReason）'}',
+      // 视觉请求返回空，很可能是图片负载格式被静默忽略，换一种编码再试。
+      retryableImageFormat: isVision,
+    );
   }
 
   String? _providerMessage(dynamic data) {
@@ -257,7 +250,57 @@ class OpenAiCompatLlmClient implements LlmClient {
     }
   }
 }
+/// 从 chat/completions 响应里取正文。
+/// 不同厂商把正文放在 content / reasoning_content / text 等不同位置，这里统一兜住。
+String? extractAssistantText(dynamic data) {
+  if (data is! Map) return null;
 
+  final choices = data['choices'];
+  if (choices is List && choices.isNotEmpty) {
+    final first = choices.first;
+    if (first is Map) {
+      final message = first['message'];
+      if (message is Map) {
+        for (final key in const ['content', 'reasoning_content', 'text']) {
+          final value = _textOf(message[key]);
+          if (value != null && value.trim().isNotEmpty) return value;
+        }
+      }
+      final text = _textOf(first['text']);
+      if (text != null && text.trim().isNotEmpty) return text;
+    }
+  }
 
+  final output = _textOf(data['output_text']);
+  if (output != null && output.trim().isNotEmpty) return output;
+  return null;
+}
+
+String? _textOf(dynamic value) {
+  if (value is String) return value;
+  if (value is List) {
+    final parts = value
+        .whereType<Map>()
+        .map((part) => part['text'])
+        .whereType<String>()
+        .toList(growable: false);
+    if (parts.isEmpty) return null;
+    return parts.join();
+  }
+  return null;
+}
+
+String? _finishReason(dynamic data) {
+  if (data is! Map) return null;
+  final choices = data['choices'];
+  if (choices is List && choices.isNotEmpty) {
+    final first = choices.first;
+    if (first is Map) {
+      final reason = first['finish_reason'];
+      if (reason is String && reason.trim().isNotEmpty) return reason;
+    }
+  }
+  return null;
+}
 
 
