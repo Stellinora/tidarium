@@ -1,5 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
@@ -7,7 +6,7 @@ import 'core/db/app_database.dart';
 import 'core/db/drift_event_store.dart';
 import 'core/db/event_store.dart';
 import 'features/home/home_providers.dart';
-import 'features/intake/debug/intake_debug_page.dart';
+import 'features/import/import_confirm_page.dart';
 import 'features/intake/image_intake.dart';
 import 'features/intake/share_intake_service.dart';
 import 'features/owners/data/drift_owner_store.dart';
@@ -86,8 +85,6 @@ Future<void> main() async {
 
   void showIntake(IntakeBatch batch) {
     if (batch.isEmpty) return;
-    // S5 会替换为正式确认页；当前仅在调试包内验证入口。
-    if (!kDebugMode) return;
     if (intakePageVisible) return;
     final navigator = navigatorKey.currentState;
     if (navigator == null) return;
@@ -96,7 +93,7 @@ Future<void> main() async {
     navigator
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => IntakeDebugPage(batch: batch),
+            builder: (_) => ImportConfirmPage(images: batch.items),
           ),
         )
         .whenComplete(() => intakePageVisible = false);
@@ -125,5 +122,6 @@ Future<void> main() async {
     ),
   );
 }
+
 
 
