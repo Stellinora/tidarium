@@ -1,9 +1,9 @@
-﻿import 'dart:convert';
-
+﻿
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
 import 'ai_settings.dart';
+import 'llm_client.dart';
 import 'image_prep.dart';
 
 enum ProbeStatus { idle, running, success, failure, skipped }
@@ -51,6 +51,8 @@ class AiProbes {
   static const visionSampleAsset = 'assets/diagnostics/vision_sample.jpg';
 
   final Dio _dio;
+
+  late final LlmClient _llm = OpenAiCompatLlmClient();
 
   Future<ProbeResult> connectivity(AiSettings settings, String? apiKey) async {
     if (settings.normalizedBaseUrl.isEmpty) {
@@ -101,12 +103,12 @@ class AiProbes {
     try {
       final prepared = ImagePrep.shrink(bytes) ?? bytes;
       final mime = ImagePrep.mimeOf(prepared);
-      final text = await _visionText(
-        settings,
-        apiKey,
-        prepared,
-        mime,
-        '只输出图片中的文字，不要解释，不要加标点以外的内容。',
+      final text = await _llm.completeVision(
+        settings: settings,
+        apiKey: apiKey,
+        image: prepared,
+        mimeType: mime,
+        prompt: '只输出图片中的文字，不要解释，不要加标点以外的内容。',
       );
       if (text.trim().isEmpty) {
         return const ProbeResult.failure('OCR 未返回文本');
@@ -115,8 +117,8 @@ class AiProbes {
         '识别成功：${text.trim().replaceAll('\n', ' ')}',
         latencyMs: DateTime.now().difference(started).inMilliseconds,
       );
-    } on DioException catch (error) {
-      return _mapError(error);
+    } on LlmException catch (error) {
+      return ProbeResult.failure(error.message);
     } catch (_) {
       return const ProbeResult.failure('OCR 请求失败');
     }
@@ -137,12 +139,12 @@ class AiProbes {
     try {
       final prepared = ImagePrep.shrink(bytes) ?? bytes;
       final mime = ImagePrep.mimeOf(prepared);
-      final text = await _visionText(
-        settings,
-        apiKey,
-        prepared,
-        mime,
-        '用一句话描述这张图片里发生了什么，不超过 30 字。',
+      final text = await _llm.completeVision(
+        settings: settings,
+        apiKey: apiKey,
+        image: prepared,
+        mimeType: mime,
+        prompt: '用一句话描述这张图片里发生了什么，不超过 30 字。',
       );
       final trimmed = text.trim();
       if (trimmed.length < 4) {
@@ -152,8 +154,8 @@ class AiProbes {
         '识别成功：$trimmed',
         latencyMs: DateTime.now().difference(started).inMilliseconds,
       );
-    } on DioException catch (error) {
-      return _mapError(error);
+    } on LlmException catch (error) {
+      return ProbeResult.failure(error.message);
     } catch (_) {
       return const ProbeResult.failure('多模态请求失败');
     }
@@ -197,71 +199,6 @@ class AiProbes {
     return ProbeResult.failure('请求失败（HTTP ${response.statusCode}）');
   }
 
-  Future<String> _visionText(
-    AiSettings settings,
-    String? apiKey,
-    Uint8List bytes,
-    String mimeType,
-    String prompt,
-  ) async {
-    final dataUrl = 'data:$mimeType;base64,${base64Encode(bytes)}';
-    final response = await _dio.post<dynamic>(
-      '${settings.normalizedBaseUrl}/chat/completions',
-      options: _headers(apiKey),
-      data: {
-        'model': settings.visionModel,
-        'messages': [
-          {
-            'role': 'user',
-            'content': [
-              {'type': 'text', 'text': prompt},
-              {
-                'type': 'image_url',
-                'image_url': {'url': dataUrl},
-              },
-            ],
-          },
-        ],
-        'max_tokens': 256,
-      },
-    );
-
-    if (response.statusCode == 401 || response.statusCode == 403) {
-      throw DioException(
-        requestOptions: RequestOptions(),
-        response: response,
-        type: DioExceptionType.badResponse,
-      );
-    }
-    if (response.statusCode != 200) {
-      throw DioException(
-        requestOptions: RequestOptions(),
-        response: response,
-        type: DioExceptionType.badResponse,
-      );
-    }
-
-    final data = response.data;
-    if (data is Map && data['choices'] is List) {
-      final choices = data['choices'] as List;
-      if (choices.isNotEmpty) {
-        final message = (choices.first as Map)['message'];
-        if (message is Map) {
-          final content = message['content'];
-          if (content is String) return content;
-          if (content is List) {
-            return content
-                .whereType<Map>()
-                .map((part) => part['text'])
-                .whereType<String>()
-                .join();
-          }
-        }
-      }
-    }
-    return '';
-  }
-
   ProbeResult _mapError(DioException error) {
     final code = error.response?.statusCode;
     if (code == 401 || code == 403) {
@@ -296,5 +233,6 @@ class AiProbes {
     }
   }
 }
+
 
 

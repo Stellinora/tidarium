@@ -1,7 +1,7 @@
 ﻿import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 import 'ai_settings.dart';
 
@@ -24,9 +24,12 @@ abstract interface class LlmClient {
 }
 
 class LlmException implements Exception {
-  LlmException(this.message);
+  LlmException(this.message, {this.retryableImageFormat = false});
 
   final String message;
+
+  /// 400 且与图片负载格式有关时置为 true，调用方会换一种图片编码重试。
+  final bool retryableImageFormat;
 
   @override
   String toString() => message;
@@ -76,27 +79,42 @@ class OpenAiCompatLlmClient implements LlmClient {
     required Uint8List image,
     required String mimeType,
     required String prompt,
-  }) {
-    return _chat(
-      settings: settings,
-      apiKey: apiKey,
-      model: settings.visionModel,
-      messages: [
-        {
-          'role': 'user',
-          'content': [
-            {'type': 'text', 'text': prompt},
+  }) async {
+    final encoded = base64Encode(image);
+    // 不同厂商对 image_url 的约定不同：大多数接受 data URL，少数只收裸 base64。
+    // 先用 data URL，被 400 拒绝时自动换裸 base64 重试一次。
+    final variants = ['data:$mimeType;base64,$encoded', encoded];
+    LlmException? lastError;
+
+    for (final url in variants) {
+      try {
+        return await _chat(
+          settings: settings,
+          apiKey: apiKey,
+          model: settings.visionModel,
+          messages: [
             {
-              'type': 'image_url',
-              'image_url': {
-                'url': 'data:$mimeType;base64,${base64Encode(image)}',
-              },
+              'role': 'user',
+              'content': [
+                {'type': 'text', 'text': prompt},
+                {
+                  'type': 'image_url',
+                  'image_url': {'url': url},
+                },
+              ],
             },
           ],
-        },
-      ],
-    );
+          isVision: true,
+        );
+      } on LlmException catch (error) {
+        lastError = error;
+        if (error.retryableImageFormat) continue;
+        rethrow;
+      }
+    }
+    throw lastError ?? LlmException('图片识别失败');
   }
+
 
   Future<String> _chat({
     required AiSettings settings,
@@ -104,6 +122,7 @@ class OpenAiCompatLlmClient implements LlmClient {
     required String model,
     required List<Map<String, Object?>> messages,
     bool jsonMode = false,
+    bool isVision = false,
   }) async {
     if (settings.normalizedBaseUrl.isEmpty) {
       throw LlmException('未配置 Base URL');
@@ -130,9 +149,32 @@ class OpenAiCompatLlmClient implements LlmClient {
     );
 
     final code = response.statusCode;
-    if (code == 401 || code == 403) throw LlmException('Key 无效或无权限');
-    if (code == 429) throw LlmException('调用过于频繁，请稍后再试');
-    if (code != 200) throw LlmException('模型请求失败（HTTP $code）');
+    final detail = _providerMessage(response.data);
+    if (code != 200) {
+      debugPrint(
+        'ai: model=$model url=${settings.normalizedBaseUrl} '
+        'status=$code detail=${detail ?? ''}',
+      );
+    }
+    final suffix = detail == null ? '' : '：$detail';
+    if (code == 401 || code == 403) {
+      throw LlmException('Key 无效或无权限$suffix');
+    }
+    if (code == 429) {
+      throw LlmException('调用过于频繁，请稍后再试$suffix');
+    }
+    if (code == 400 && isVision) {
+      throw LlmException(
+        '图片格式被拒绝（HTTP 400）$suffix',
+        retryableImageFormat: true,
+      );
+    }
+    if (code == 404) {
+      throw LlmException('接口或模型不存在（HTTP 404）$suffix');
+    }
+    if (code != 200) {
+      throw LlmException('模型请求失败（HTTP $code）$suffix');
+    }
 
     final data = response.data;
     if (data is Map && data['choices'] is List) {
@@ -153,6 +195,44 @@ class OpenAiCompatLlmClient implements LlmClient {
       }
     }
     throw LlmException('模型返回格式不符合预期');
+  }
+
+  String? _providerMessage(dynamic data) {
+    try {
+      if (data is Map) {
+        final error = data['error'];
+        if (error is Map) {
+          final message = error['message'];
+          if (message is String && message.trim().isNotEmpty) {
+            return _truncate(message.trim());
+          }
+          final code = error['code'];
+          if (code is String && code.trim().isNotEmpty) {
+            return _truncate(code.trim());
+          }
+        }
+        if (error is String && error.trim().isNotEmpty) {
+          return _truncate(error.trim());
+        }
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return _truncate(message.trim());
+        }
+      } else if (data is String && data.trim().isNotEmpty) {
+        return _truncate(data.trim());
+      }
+    } catch (_) {
+      // 错误体不可解析时忽略。
+    }
+    return null;
+  }
+
+  String _truncate(String value) {
+    const limit = 160;
+    final singleLine = value.replaceAll(RegExp(r'\\s+'), ' ');
+    return singleLine.length <= limit
+        ? singleLine
+        : '${singleLine.substring(0, limit)}…';
   }
 
   Map<String, Object?> _decodeJsonObject(String raw) {
@@ -177,4 +257,7 @@ class OpenAiCompatLlmClient implements LlmClient {
     }
   }
 }
+
+
+
 
