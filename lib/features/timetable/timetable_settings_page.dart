@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../owners/merge_owners_page.dart';
 import 'model/timetable_config.dart';
 import 'reminder/course_reminder_coordinator.dart';
 import 'time_slot_settings_page.dart';
@@ -246,6 +247,22 @@ class TimetableSettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const TimetableIoPage()),
+            ),
+          ),
+          const Divider(),
+          _SectionHeader(title: '归属', theme: theme),
+          ListTile(
+            leading: const Icon(Icons.merge_type),
+            title: const Text('合并同名课程'),
+            subtitle: const Text('同一老师、同一课程名的多条记录'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MergeOwnersPage(
+                  profileId: ref.read(timetableLibraryProvider).activeId,
+                  courses: ref.read(timetableProvider).courses,
+                ),
+              ),
             ),
           ),
           const Divider(),
@@ -586,3 +603,4 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
+
