@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +18,7 @@ abstract interface class LlmClient {
     required AiSettings settings,
     required String? apiKey,
     required Uint8List image,
+    required String mimeType,
     required String prompt,
   });
 }
@@ -73,6 +74,7 @@ class OpenAiCompatLlmClient implements LlmClient {
     required AiSettings settings,
     required String? apiKey,
     required Uint8List image,
+    required String mimeType,
     required String prompt,
   }) {
     return _chat(
@@ -86,7 +88,9 @@ class OpenAiCompatLlmClient implements LlmClient {
             {'type': 'text', 'text': prompt},
             {
               'type': 'image_url',
-              'image_url': {'url': 'data:image/png;base64,${base64Encode(image)}'},
+              'image_url': {
+                'url': 'data:$mimeType;base64,${base64Encode(image)}',
+              },
             },
           ],
         },
@@ -173,3 +177,4 @@ class OpenAiCompatLlmClient implements LlmClient {
     }
   }
 }
+

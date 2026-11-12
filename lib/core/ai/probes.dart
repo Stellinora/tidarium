@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
 import 'ai_settings.dart';
+import 'image_prep.dart';
 
 enum ProbeStatus { idle, running, success, failure, skipped }
 
@@ -46,8 +47,8 @@ class AiProbes {
             ),
           );
 
-  static const ocrSampleAsset = 'assets/diagnostics/ocr_sample.png';
-  static const visionSampleAsset = 'assets/diagnostics/vision_sample.png';
+  static const ocrSampleAsset = 'assets/diagnostics/ocr_sample.jpg';
+  static const visionSampleAsset = 'assets/diagnostics/vision_sample.jpg';
 
   final Dio _dio;
 
@@ -90,7 +91,7 @@ class AiProbes {
   Future<ProbeResult> ocr(AiSettings settings, String? apiKey) async {
     final bytes = await _loadAsset(ocrSampleAsset);
     if (bytes == null) {
-      return const ProbeResult.skipped('未放置样例图 assets/diagnostics/ocr_sample.png');
+      return const ProbeResult.skipped('未放置样例图 assets/diagnostics/ocr_sample.jpg');
     }
     if (!settings.isReadyForVision) {
       return const ProbeResult.failure('未配置视觉模型');
@@ -98,10 +99,13 @@ class AiProbes {
 
     final started = DateTime.now();
     try {
+      final prepared = ImagePrep.shrink(bytes) ?? bytes;
+      final mime = ImagePrep.mimeOf(prepared);
       final text = await _visionText(
         settings,
         apiKey,
-        bytes,
+        prepared,
+        mime,
         '只输出图片中的文字，不要解释，不要加标点以外的内容。',
       );
       if (text.trim().isEmpty) {
@@ -122,7 +126,7 @@ class AiProbes {
     final bytes = await _loadAsset(visionSampleAsset);
     if (bytes == null) {
       return const ProbeResult.skipped(
-        '未放置样例图 assets/diagnostics/vision_sample.png',
+        '未放置样例图 assets/diagnostics/vision_sample.jpg',
       );
     }
     if (!settings.isReadyForVision) {
@@ -131,18 +135,21 @@ class AiProbes {
 
     final started = DateTime.now();
     try {
+      final prepared = ImagePrep.shrink(bytes) ?? bytes;
+      final mime = ImagePrep.mimeOf(prepared);
       final text = await _visionText(
         settings,
         apiKey,
-        bytes,
-        '图片里的数字是多少？只回答数字。',
+        prepared,
+        mime,
+        '用一句话描述这张图片里发生了什么，不超过 30 字。',
       );
-      final hasDigit = RegExp(r'\d').hasMatch(text);
-      if (!hasDigit) {
+      final trimmed = text.trim();
+      if (trimmed.length < 4) {
         return const ProbeResult.failure('模型没有识别出图片内容');
       }
       return ProbeResult.success(
-        '识别成功：${text.trim()}',
+        '识别成功：$trimmed',
         latencyMs: DateTime.now().difference(started).inMilliseconds,
       );
     } on DioException catch (error) {
@@ -194,9 +201,10 @@ class AiProbes {
     AiSettings settings,
     String? apiKey,
     Uint8List bytes,
+    String mimeType,
     String prompt,
   ) async {
-    final dataUrl = 'data:image/png;base64,${base64Encode(bytes)}';
+    final dataUrl = 'data:$mimeType;base64,${base64Encode(bytes)}';
     final response = await _dio.post<dynamic>(
       '${settings.normalizedBaseUrl}/chat/completions',
       options: _headers(apiKey),
@@ -288,4 +296,5 @@ class AiProbes {
     }
   }
 }
+
 

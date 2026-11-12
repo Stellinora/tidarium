@@ -1,5 +1,6 @@
-import '../../core/ai/ai_gateway.dart';
+﻿import '../../core/ai/ai_gateway.dart';
 import '../../core/ai/ai_settings.dart';
+import '../../core/ai/image_prep.dart';
 import '../../core/ai/llm_client.dart';
 import '../intake/image_intake.dart';
 import 'import_parser.dart';
@@ -31,12 +32,17 @@ class ImportPipeline {
       return const ParseResult.failure('本次导入调用次数过多，请稍后再试');
     }
 
+    final shrunk = ImagePrep.shrink(intake.bytes);
+    final bytes = shrunk ?? intake.bytes;
+    final mime = shrunk != null ? 'image/jpeg' : intake.mimeType;
+
     String text;
     try {
       text = await client.completeVision(
         settings: settings,
         apiKey: apiKey,
-        image: intake.bytes,
+        image: bytes,
+        mimeType: mime,
         prompt: buildOcrPrompt(),
       );
     } on LlmException catch (error) {
@@ -58,3 +64,4 @@ class ImportPipeline {
     );
   }
 }
+

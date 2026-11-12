@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tidarium/core/ai/ai_gateway.dart';
@@ -42,6 +42,7 @@ class _FakeClient implements LlmClient {
     required AiSettings settings,
     required String? apiKey,
     required Uint8List image,
+    required String mimeType,
     required String prompt,
   }) async {
     visionCalls += 1;
@@ -250,3 +251,4 @@ void main() {
     });
   });
 }
+
