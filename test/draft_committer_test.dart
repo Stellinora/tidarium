@@ -68,8 +68,24 @@ void main() {
     );
 
     expect(result.inserted, 0);
-    expect(result.skippedDuplicates, 1);
+    expect(result.skippedNoTime, 1);
+    expect(result.skippedDuplicates, 0);
     expect(await todos.all(profileId: 'p1'), isEmpty);
+  });
+
+  test('选择补齐时，缺时间的草稿按今天 23:59 写入', () async {
+    final result = await committer.commit(
+      drafts: [_draft('d1', '待补时间的任务')],
+      profileId: 'p1',
+      fillMissingDueWithToday: true,
+    );
+
+    expect(result.inserted, 1);
+    final saved = (await todos.all(profileId: 'p1')).single;
+    final now = DateTime.now();
+    expect(saved.dueAt.hour, 23);
+    expect(saved.dueAt.minute, 59);
+    expect(saved.dueAt.day, now.day);
   });
 
   test('与已有待办重复时跳过', () async {
@@ -249,4 +265,5 @@ void main() {
     expect(await tags.tagIdsOf(saved.id), hasLength(2));
   });
 }
+
 

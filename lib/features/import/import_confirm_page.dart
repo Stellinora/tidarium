@@ -195,6 +195,33 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         .toList(growable: false);
     if (chosen.isEmpty) return;
 
+    final missingTime = chosen.where((draft) => draft.dueAt == null).length;
+    var fillMissing = false;
+    if (missingTime > 0) {
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('有的事项没有时间'),
+          content: Text(
+            '选中的 ${chosen.length} 条里有 $missingTime 条没识别到截止时间。'
+            '要按今天 23:59 写入，还是先返回补时间？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('返回补时间'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('按今天 23:59 写入'),
+            ),
+          ],
+        ),
+      );
+      if (choice != true || !mounted) return;
+      fillMissing = true;
+    }
+
     setState(() => _committing = true);
 
     final profileId = ref.read(timetableLibraryProvider).activeId;
@@ -206,19 +233,20 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
     final result = await committer.commit(
       drafts: chosen,
       profileId: profileId,
+      fillMissingDueWithToday: fillMissing,
     );
 
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          '已写入 ${result.inserted} 条'
-          '${result.skippedDuplicates > 0 ? '，跳过 ${result.skippedDuplicates} 条重复' : ''}',
-        ),
-      ),
-    );
+    final parts = <String>['已写入 ${result.inserted} 条'];
+    if (result.skippedDuplicates > 0) {
+      parts.add('跳过 ${result.skippedDuplicates} 条重复');
+    }
+    if (result.skippedNoTime > 0) {
+      parts.add('${result.skippedNoTime} 条缺时间未写入');
+    }
+    messenger.showSnackBar(SnackBar(content: Text(parts.join('，'))));
   }
 
   Future<void> _openDraft(ImportDraft draft, {required bool edit}) async {
@@ -816,5 +844,6 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
 
 

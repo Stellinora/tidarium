@@ -9,11 +9,15 @@ class DraftCommitResult {
   const DraftCommitResult({
     this.inserted = 0,
     this.skippedDuplicates = 0,
+    this.skippedNoTime = 0,
     this.conflicts = 0,
   });
 
   final int inserted;
   final int skippedDuplicates;
+
+  /// 没有截止时间、且没有选择自动补齐的草稿数量。
+  final int skippedNoTime;
 
   /// 与已有待办落在同一分钟的数量，仅提示，不阻止写入。
   final int conflicts;
@@ -35,6 +39,7 @@ class DraftCommitter {
     required List<ImportDraft> drafts,
     required String profileId,
     List<String> tagNames = const [],
+    bool fillMissingDueWithToday = false,
   }) async {
     if (drafts.isEmpty) return const DraftCommitResult();
 
@@ -58,18 +63,22 @@ class DraftCommitter {
 
     var inserted = 0;
     var skipped = 0;
+    var skippedNoTime = 0;
     var conflicts = 0;
     final now = DateTime.now();
+    final fallbackDue = fillMissingDueWithToday
+        ? DateTime(now.year, now.month, now.day, 23, 59)
+        : null;
 
     final existingMinutes = <String>{
       for (final item in existing) _minuteKey(item.dueAt),
     };
 
     for (final draft in drafts) {
-      final dueAt = draft.dueAt;
-      // 没有时间的草稿不落库，避免误记到今天。
+      final dueAt = draft.dueAt ?? fallbackDue;
+      // 没有时间的草稿默认不落库，避免误记到今天；用户明确选择后才补齐。
       if (dueAt == null) {
-        skipped += 1;
+        skippedNoTime += 1;
         continue;
       }
 
@@ -113,6 +122,7 @@ class DraftCommitter {
     return DraftCommitResult(
       inserted: inserted,
       skippedDuplicates: skipped,
+      skippedNoTime: skippedNoTime,
       conflicts: conflicts,
     );
   }
@@ -151,5 +161,6 @@ class DraftCommitter {
         '${value.hour}:${value.minute}';
   }
 }
+
 
 
