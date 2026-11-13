@@ -1,7 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/model/standard_event.dart';
 import '../timetable/model/course.dart';
+import '../timetable/model/timetable_config.dart';
 import '../timetable/model/timetable_data.dart';
 import '../timetable/timetable_providers.dart';
 import '../timetable/timetable_time.dart';
@@ -51,6 +52,110 @@ class TodayAgenda {
   bool get isEmpty => items.isEmpty;
 }
 
+/// 某一天的课程集合（用于「今日课程 / 明日课程」分区）。
+class DayCourses {
+  const DayCourses({
+    required this.date,
+    required this.status,
+    required this.weekNumber,
+    required this.courses,
+  });
+
+  final DateTime date;
+  final TodayAgendaStatus status;
+  final int? weekNumber;
+  final List<AgendaItem> courses;
+
+  bool get isEmpty => courses.isEmpty;
+}
+
+final tomorrowCoursesProvider = FutureProvider<DayCourses>((ref) async {
+  final data = ref.watch(timetableProvider);
+  final now = DateTime.now();
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  return buildDayCourses(data: data, date: tomorrow, now: now);
+});
+
+DayCourses buildDayCourses({
+  required TimetableData data,
+  required DateTime date,
+  required DateTime now,
+}) {
+  final config = data.config;
+  final day = DateTime(date.year, date.month, date.day);
+  final weekNumber = weekNumberFor(
+    day,
+    config.semesterStart,
+    firstWeekday: config.firstWeekday,
+  );
+  final status = _statusFor(config, weekNumber);
+  final items = _courseItemsFor(
+    data: data,
+    date: day,
+    now: now,
+    weekNumber: weekNumber,
+    status: status,
+  );
+  return DayCourses(
+    date: day,
+    status: status,
+    weekNumber: weekNumber,
+    courses: List.unmodifiable(items),
+  );
+}
+
+TodayAgendaStatus _statusFor(TimetableConfig config, int? weekNumber) {
+  if (config.semesterStart == null) return TodayAgendaStatus.noSemester;
+  if (weekNumber == null || weekNumber < 1) {
+    return TodayAgendaStatus.beforeSemester;
+  }
+  if (weekNumber > config.totalWeeks) return TodayAgendaStatus.afterSemester;
+  return TodayAgendaStatus.normal;
+}
+
+List<AgendaItem> _courseItemsFor({
+  required TimetableData data,
+  required DateTime date,
+  required DateTime now,
+  required int? weekNumber,
+  required TodayAgendaStatus status,
+}) {
+  if (status != TodayAgendaStatus.normal || weekNumber == null) {
+    return const [];
+  }
+  final slots = {for (final slot in data.timeSlots) slot.number: slot};
+  final items = <AgendaItem>[];
+  for (final course in data.courses) {
+    if (course.day != date.weekday || !course.weeks.contains(weekNumber)) {
+      continue;
+    }
+    final startSlot = slots[course.startSection];
+    final endSlot = slots[course.endSection];
+    if (startSlot == null || endSlot == null) continue;
+
+    final start = _atMinutes(date, startSlot.startMinutes);
+    final end = _atMinutes(date, endSlot.endMinutes);
+    items.add(
+      AgendaItem(
+        type: AgendaItemType.course,
+        start: start,
+        end: end,
+        finished: !end.isAfter(now) && _sameDay(date, now),
+        course: course,
+      ),
+    );
+  }
+  items.sort((a, b) {
+    final aStart = a.start;
+    final bStart = b.start;
+    if (aStart == null && bStart == null) return 0;
+    if (aStart == null) return 1;
+    if (bStart == null) return -1;
+    return aStart.compareTo(bStart);
+  });
+  return items;
+}
+
 final todayAgendaProvider = FutureProvider<TodayAgenda>((ref) async {
   final data = ref.watch(timetableProvider);
   final events = ref.watch(eventsProvider).value ?? const <StandardEvent>[];
@@ -77,42 +182,16 @@ TodayAgenda buildTodayAgenda({
     firstWeekday: config.firstWeekday,
   );
 
-  final TodayAgendaStatus status;
-  if (config.semesterStart == null) {
-    status = TodayAgendaStatus.noSemester;
-  } else if (weekNumber == null || weekNumber < 1) {
-    status = TodayAgendaStatus.beforeSemester;
-  } else if (weekNumber > config.totalWeeks) {
-    status = TodayAgendaStatus.afterSemester;
-  } else {
-    status = TodayAgendaStatus.normal;
-  }
-
-  final slots = {for (final slot in data.timeSlots) slot.number: slot};
-  final items = <AgendaItem>[];
-
-  if (status == TodayAgendaStatus.normal && weekNumber != null) {
-    for (final course in data.courses) {
-      if (course.day != today.weekday || !course.weeks.contains(weekNumber)) {
-        continue;
-      }
-      final startSlot = slots[course.startSection];
-      final endSlot = slots[course.endSection];
-      if (startSlot == null || endSlot == null) continue;
-
-      final start = _atMinutes(today, startSlot.startMinutes);
-      final end = _atMinutes(today, endSlot.endMinutes);
-      items.add(
-        AgendaItem(
-          type: AgendaItemType.course,
-          start: start,
-          end: end,
-          finished: !end.isAfter(now),
-          course: course,
-        ),
-      );
-    }
-  }
+  final status = _statusFor(config, weekNumber);
+  final items = <AgendaItem>[
+    ..._courseItemsFor(
+      data: data,
+      date: today,
+      now: now,
+      weekNumber: weekNumber,
+      status: status,
+    ),
+  ];
 
   for (final event in events) {
     final due = event.dueTime?.toLocal();
@@ -169,3 +248,5 @@ DateTime _atMinutes(DateTime date, int minutes) {
 bool _sameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
 }
+
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -12,7 +12,6 @@ import '../timetable/timetable_time.dart';
 import '../timetable/widgets/course_detail_sheet.dart';
 import '../timetable/widgets/course_editor_sheet.dart';
 import '../todos/model/todo_item.dart';
-import '../todos/todo_filters.dart';
 import '../todos/todo_providers.dart';
 import '../todos/widgets/todo_editor_sheet.dart';
 import '../todos/widgets/todo_section.dart';
@@ -26,12 +25,10 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  final _activeItemKey = GlobalKey();
-  var _didAutoScroll = false;
-
   @override
   Widget build(BuildContext context) {
     final agenda = ref.watch(todayAgendaProvider);
+    final tomorrow = ref.watch(tomorrowCoursesProvider);
     final config = ref.watch(timetableProvider).config;
     final todos = ref.watch(todosProvider).value ?? const <TodoItem>[];
     final hasTimetable = ref
@@ -66,12 +63,128 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
       body: SafeArea(
         child: agenda.when(
-          data: (data) => _buildAgenda(context, data, config, todos),
+          data: (data) => _buildBody(
+            context,
+            data,
+            tomorrow.value,
+            config,
+            todos,
+          ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stackTrace) => Center(child: Text('读取日程失败：$error')),
         ),
       ),
     );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    TodayAgenda agenda,
+    DayCourses? tomorrow,
+    TimetableConfig config,
+    List<TodoItem> todos,
+  ) {
+    final theme = Theme.of(context);
+    final todayCourses = agenda.items
+        .where((item) => item.type == AgendaItemType.course)
+        .toList(growable: false);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      children: [
+        Text(
+          '${DateFormat('M月d日').format(agenda.date)} '
+          '${weekdayName(agenda.date.weekday)}',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _statusLabel(agenda),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Text(
+              agenda.tableName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _SectionTitle(
+          title: '今日课程',
+          trailing: todayCourses.isEmpty ? null : '${todayCourses.length} 节',
+        ),
+        if (todayCourses.isEmpty)
+          const _EmptyHint(icon: Icons.wb_sunny_outlined, text: '今天没有课程')
+        else
+          for (final item in todayCourses)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AgendaItemTile(
+                item: item,
+                config: config,
+                onCourseTap: item.course == null
+                    ? null
+                    : () => _openCourse(item.course!),
+              ),
+            ),
+        const SizedBox(height: 12),
+        _SectionTitle(
+          title: '明日课程',
+          trailing: (tomorrow == null || tomorrow.isEmpty)
+              ? null
+              : '${tomorrow.courses.length} 节',
+        ),
+        if (tomorrow == null)
+          const _EmptyHint(
+            icon: Icons.schedule,
+            text: '正在读取明日课程…',
+          )
+        else if (tomorrow.isEmpty)
+          const _EmptyHint(icon: Icons.nights_stay_outlined, text: '明天没有课程')
+        else
+          for (final item in tomorrow.courses)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AgendaItemTile(
+                item: item,
+                config: config,
+                onCourseTap: item.course == null
+                    ? null
+                    : () => _openCourse(item.course!),
+              ),
+            ),
+        const SizedBox(height: 4),
+        TodoSection(
+          title: '待办事项',
+          todos: todos,
+          showOverdue: true,
+          onToggle: _toggleTodo,
+          onEdit: _editTodo,
+          onDelete: _deleteTodo,
+        ),
+      ],
+    );
+  }
+
+  String _statusLabel(TodayAgenda agenda) {
+    return switch (agenda.status) {
+      TodayAgendaStatus.noSemester => '未设置学期开始日期',
+      TodayAgendaStatus.beforeSemester => '学期尚未开始',
+      TodayAgendaStatus.afterSemester => '学期已结束',
+      TodayAgendaStatus.normal => '第 ${agenda.weekNumber} 周',
+    };
   }
 
   Future<void> _addCourse() async {
@@ -138,140 +251,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     await ref.read(todoStoreProvider).delete(todo.id);
   }
 
-  Widget _buildAgenda(
-    BuildContext context,
-    TodayAgenda agenda,
-    TimetableConfig config,
-    List<TodoItem> todos,
-  ) {
-    final theme = Theme.of(context);
-    final firstActive = agenda.items.indexWhere((item) => !item.finished);
-    final activeIndex = firstActive < 0 ? null : firstActive;
-    final now = DateTime.now();
-    final today = dateOnly(agenda.date);
-    final reference = DateTime(
-      agenda.date.year,
-      agenda.date.month,
-      agenda.date.day,
-      now.hour,
-      now.minute,
-    );
-    final tomorrowTodos = todosDueOn(todos, addCalendarDays(today, 1));
-    final listTodos = todosOutsideTodayAndTomorrow(todos, reference);
-
-    if (activeIndex != null && !_didAutoScroll) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final itemContext = _activeItemKey.currentContext;
-        if (itemContext == null) return;
-        _didAutoScroll = true;
-        Scrollable.ensureVisible(
-          itemContext,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          alignment: 0.2,
-        );
-      });
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${DateFormat('M月d日').format(agenda.date)} '
-                '${weekdayName(agenda.date.weekday)}',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _statusLabel(agenda),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    agenda.tableName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-            children: [
-              if (agenda.items.isEmpty) ...[
-                const SizedBox(height: 40),
-                const _EmptyState(),
-                const SizedBox(height: 16),
-              ] else ...[
-                for (var index = 0; index < agenda.items.length; index++) ...[
-                  if (index > 0) const SizedBox(height: 10),
-                  _AgendaItemTile(
-                    key: index == activeIndex ? _activeItemKey : null,
-                    item: agenda.items[index],
-                    config: config,
-                    onCourseTap: agenda.items[index].course == null
-                        ? null
-                        : () => _openCourse(agenda.items[index].course!),
-                    onTodoToggle: agenda.items[index].todo == null
-                        ? null
-                        : () => _toggleTodo(agenda.items[index].todo!),
-                    onTodoTap: agenda.items[index].todo == null
-                        ? null
-                        : () => _editTodo(agenda.items[index].todo!),
-                  ),
-                ],
-                const SizedBox(height: 20),
-              ],
-              TodoSection(
-                title: '明日待办',
-                todos: tomorrowTodos,
-                onToggle: _toggleTodo,
-                onEdit: _editTodo,
-                onDelete: _deleteTodo,
-              ),
-              const SizedBox(height: 8),
-              TodoSection(
-                title: '待办清单',
-                todos: listTodos,
-                showOverdue: true,
-                onToggle: _toggleTodo,
-                onEdit: _editTodo,
-                onDelete: _deleteTodo,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _statusLabel(TodayAgenda agenda) {
-    return switch (agenda.status) {
-      TodayAgendaStatus.noSemester => '未设置学期开始日期',
-      TodayAgendaStatus.beforeSemester => '学期尚未开始',
-      TodayAgendaStatus.afterSemester => '学期已结束',
-      TodayAgendaStatus.normal => '第 ${agenda.weekNumber} 周',
-    };
-  }
-
   Future<void> _openCourse(Course course) async {
     final data = ref.read(timetableProvider);
     final action = await showCourseDetailSheet(
@@ -317,21 +296,77 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, this.trailing});
+
+  final String title;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          if (trailing != null)
+            Text(
+              trailing!,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyHint extends StatelessWidget {
+  const _EmptyHint({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AgendaItemTile extends StatelessWidget {
   const _AgendaItemTile({
-    super.key,
     required this.item,
     required this.config,
     required this.onCourseTap,
-    this.onTodoToggle,
-    this.onTodoTap,
   });
 
   final AgendaItem item;
   final TimetableConfig config;
   final VoidCallback? onCourseTap;
-  final VoidCallback? onTodoToggle;
-  final VoidCallback? onTodoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -462,43 +497,22 @@ class _AgendaItemTile extends StatelessWidget {
       );
     }
 
-    if (item.todo != null) {
-      final todo = item.todo!;
-      final subtitle = [
-        if (todo.source.isNotEmpty) todo.source,
-        '截止 ${DateFormat('HH:mm').format(todo.dueAt)}',
-      ].join(' · ');
+    if (item.event != null) {
+      final event = item.event!;
       return Card(
         margin: EdgeInsets.zero,
         child: ListTile(
-          leading: Checkbox(
-            value: todo.completed,
-            onChanged: (_) => onTodoToggle?.call(),
-          ),
-          title: Text(
-            todo.title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              decoration: todo.completed ? TextDecoration.lineThrough : null,
-            ),
-          ),
-          subtitle: Text(subtitle),
-          onTap: onTodoTap,
+          leading: Icon(_eventIcon(event.type)),
+          title: Text(event.title),
+          subtitle: Text(event.source),
+          trailing: item.finished
+              ? const Icon(Icons.check_circle_outline, size: 18)
+              : null,
         ),
       );
     }
 
-    final event = item.event!;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: ListTile(
-        leading: Icon(_eventIcon(event.type)),
-        title: Text(event.title),
-        subtitle: Text(event.source),
-        trailing: item.finished
-            ? const Icon(Icons.check_circle_outline, size: 18)
-            : null,
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   IconData _eventIcon(EventType type) {
@@ -507,35 +521,6 @@ class _AgendaItemTile extends StatelessWidget {
       EventType.course => Icons.school_outlined,
       EventType.onlineSession => Icons.live_tv_outlined,
     };
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.event_note_outlined,
-          size: 56,
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(height: 12),
-        Text('今天没有安排', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          '课程和今日事件会显示在这里',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
   }
 }
 

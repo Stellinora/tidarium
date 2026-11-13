@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tidarium/core/model/standard_event.dart';
@@ -92,10 +92,10 @@ void main() {
 
     expect(find.text('今日日程'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('提交作业'), findsOneWidget);
     expect(find.text('添加课程'), findsNothing);
-    expect(find.text('明日待办'), findsOneWidget);
-    expect(find.text('待办清单'), findsOneWidget);
+    expect(find.text('今日课程'), findsOneWidget);
+    expect(find.text('明日课程'), findsOneWidget);
+    expect(find.text('待办事项'), findsOneWidget);
     expect(find.text('明天交作业'), findsOneWidget);
     expect(find.text('写实验报告'), findsOneWidget);
   });
@@ -148,3 +148,4 @@ void main() {
     expect(find.textContaining('已完成 1 项'), findsOneWidget);
   });
 }
+

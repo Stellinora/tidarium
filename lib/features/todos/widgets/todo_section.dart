@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../model/todo_item.dart';
@@ -31,8 +31,21 @@ class _TodoSectionState extends State<TodoSection> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final active = widget.todos.where((todo) => !todo.completed).toList();
-    final completed = widget.todos.where((todo) => todo.completed).toList();
+    final now = DateTime.now();
+    final active = widget.todos
+        .where((todo) => !todo.completed)
+        .toList(growable: false)
+      ..sort((a, b) {
+        final aOverdue = a.isOverdueAt(now);
+        final bOverdue = b.isOverdueAt(now);
+        if (aOverdue != bOverdue) return aOverdue ? -1 : 1;
+        final byDue = a.dueAt.compareTo(b.dueAt);
+        if (byDue != 0) return byDue;
+        return a.createdAt.compareTo(b.createdAt);
+      });
+    final completed = widget.todos
+        .where((todo) => todo.completed)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,16 +139,45 @@ class _TodoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final overdue = showOverdue && todo.isOverdueAt(DateTime.now());
+    final now = DateTime.now();
+    final overdue = !todo.completed && showOverdue && todo.isOverdueAt(now);
+    final remaining = todo.dueAt.difference(now);
+    final soon = !todo.completed &&
+        !overdue &&
+        remaining > Duration.zero &&
+        remaining <= const Duration(hours: 24);
+
+    final barColor = todo.completed
+        ? theme.colorScheme.outlineVariant
+        : overdue
+        ? theme.colorScheme.error
+        : soon
+        ? const Color(0xFFF59E0B)
+        : theme.colorScheme.primary.withValues(alpha: 0.25);
+
+    final urgencyTag = todo.completed
+        ? null
+        : overdue
+        ? '已逾期'
+        : soon
+        ? '临期'
+        : null;
+
     final dueLabel = DateFormat('M月d日 HH:mm').format(todo.dueAt);
     final subtitle = [
+      ?urgencyTag,
       if (todo.source.isNotEmpty) todo.source,
       '截止 $dueLabel',
     ].join(' · ');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: barColor, width: 4)),
+        ),
+        child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
         leading: Checkbox(
           value: todo.completed,
@@ -176,7 +218,11 @@ class _TodoTile extends StatelessWidget {
           ],
         ),
         onTap: onEdit,
+        ),
       ),
     );
   }
 }
+
+
+
