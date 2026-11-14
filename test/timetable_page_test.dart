@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tidarium/features/timetable/data/timetable_store.dart';
@@ -135,7 +135,7 @@ void main() {
 
     await tester.tap(find.byTooltip('更多'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('添加课程'));
+    await tester.tap(find.text('添加课程').last);
     await tester.pumpAndSettle();
 
     expect(find.text('课程名称'), findsOneWidget);
@@ -186,6 +186,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('还没有课程'), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 }
+
+

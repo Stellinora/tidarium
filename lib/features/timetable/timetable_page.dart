@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,6 +112,18 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     });
 
     return Scaffold(
+      floatingActionButton: data.courses.isEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => _handleMenuAction(
+                context,
+                ref,
+                _MenuAction.addCourse,
+                day: defaultDay,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('添加课程'),
+            )
+          : null,
       appBar: AppBar(
         centerTitle: true,
         leadingWidth: 136,
@@ -562,3 +574,5 @@ class _HintBar extends StatelessWidget {
     );
   }
 }
+
+

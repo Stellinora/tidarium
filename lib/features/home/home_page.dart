@@ -31,10 +31,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final tomorrow = ref.watch(tomorrowCoursesProvider);
     final config = ref.watch(timetableProvider).config;
     final todos = ref.watch(todosProvider).value ?? const <TodoItem>[];
-    final hasTimetable = ref
-        .watch(timetableLibraryProvider)
-        .timetables
-        .isNotEmpty;
+    final activeCourses = ref.watch(timetableProvider).courses;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,13 +51,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: hasTimetable
-          ? null
-          : FloatingActionButton.extended(
+      floatingActionButton: activeCourses.isEmpty
+          ? FloatingActionButton.extended(
               onPressed: _addCourse,
               icon: const Icon(Icons.add),
               label: const Text('添加课程'),
-            ),
+            )
+          : null,
       body: SafeArea(
         child: agenda.when(
           data: (data) => _buildBody(
@@ -523,4 +520,6 @@ class _AgendaItemTile extends StatelessWidget {
     };
   }
 }
+
+
 

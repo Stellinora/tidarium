@@ -92,7 +92,7 @@ void main() {
 
     expect(find.text('今日日程'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('添加课程'), findsNothing);
+    expect(find.text('添加课程'), findsOneWidget);
     expect(find.text('今日课程'), findsOneWidget);
     expect(find.text('明日课程'), findsOneWidget);
     expect(find.text('待办事项'), findsOneWidget);
@@ -148,4 +148,5 @@ void main() {
     expect(find.textContaining('已完成 1 项'), findsOneWidget);
   });
 }
+
 
