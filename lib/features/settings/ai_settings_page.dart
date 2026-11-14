@@ -296,6 +296,13 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               setState(() => _settings = _settings.copyWith(ocrMode: mode));
             },
           ),
+          const SizedBox(height: 6),
+          Text(
+            '未配置视觉模型时，会自动使用本地 OCR + 规则解析，不需要 Key。',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 24),
           Text('能力检测', style: theme.textTheme.labelLarge),
           const SizedBox(height: 6),
@@ -390,4 +397,5 @@ class _ProbeTile extends StatelessWidget {
     );
   }
 }
+
 

@@ -1,4 +1,4 @@
-import java.io.File
+﻿import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -75,12 +75,18 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ML Kit 文本识别：默认只带拉丁模型，中文与天城文需要显式引入。
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 }
 
 kotlin {
@@ -92,3 +98,6 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+
+

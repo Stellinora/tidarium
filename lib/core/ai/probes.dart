@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'ai_settings.dart';
 import 'llm_client.dart';
+import 'local_ocr.dart';
 import 'image_prep.dart';
 
 enum ProbeStatus { idle, running, success, failure, skipped }
@@ -95,13 +96,24 @@ class AiProbes {
     if (bytes == null) {
       return const ProbeResult.skipped('未放置样例图 assets/diagnostics/ocr_sample.jpg');
     }
+    final started = DateTime.now();
+    final prepared = ImagePrep.shrink(bytes) ?? bytes;
+
     if (!settings.isReadyForVision) {
-      return const ProbeResult.failure('未配置视觉模型');
+      if (!LocalOcrEngine.isSupported) {
+        return const ProbeResult.failure('未配置视觉模型，本地 OCR 也不可用');
+      }
+      final local = await const LocalOcrEngine().recognize(prepared);
+      if (local == null || local.trim().isEmpty) {
+        return const ProbeResult.failure('本地 OCR 没有识别出文字');
+      }
+      return ProbeResult.success(
+        '本地 OCR：${local.trim().replaceAll('\n', ' ')}',
+        latencyMs: DateTime.now().difference(started).inMilliseconds,
+      );
     }
 
-    final started = DateTime.now();
     try {
-      final prepared = ImagePrep.shrink(bytes) ?? bytes;
       final mime = ImagePrep.mimeOf(prepared);
       final text = await _llm.completeVision(
         settings: settings,
@@ -233,6 +245,8 @@ class AiProbes {
     }
   }
 }
+
+
 
 
 

@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,7 +41,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('还没有配置视觉模型'), findsOneWidget);
+    expect(find.text('还没有可用的识别方式'), findsOneWidget);
     expect(find.text('去设置'), findsOneWidget);
   });
 
@@ -69,3 +69,4 @@ void main() {
     expect(find.text('去设置'), findsOneWidget);
   });
 }
+

@@ -1,4 +1,5 @@
 ﻿import 'dart:async';
+import 'dart:typed_data';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../core/ai/ai_gateway.dart';
 import '../../core/ai/ai_settings.dart';
 import '../../core/ai/llm_client.dart';
+import '../../core/ai/local_ocr.dart';
 import '../intake/image_intake.dart';
 import '../owners/model/owner.dart';
 import '../owners/owner_providers.dart';
@@ -90,7 +92,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
     });
 
     final settings = await _settingsRepo.load();
-    if (!settings.isReadyForVision) {
+    if (!settings.isReadyForVision && !LocalOcrEngine.isSupported) {
       if (!mounted) return;
       setState(() {
         _parsing = false;
@@ -293,10 +295,17 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
             ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 360;
-          return Column(
+      body: Stack(
+        children: [
+          if (widget.images.isNotEmpty)
+            Positioned.fill(
+              child: _PreviewBackground(bytes: widget.images.first.bytes),
+            ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 360;
+                return Column(
             children: [
               Expanded(
                 child: _buildBody(theme, compact, constraints.maxHeight),
@@ -343,7 +352,10 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
                 ),
             ],
           );
-        },
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -384,10 +396,10 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
               color: theme.colorScheme.primary,
             ),
             const SizedBox(height: 12),
-            const Text('还没有配置视觉模型'),
+            const Text('还没有可用的识别方式'),
             const SizedBox(height: 8),
             Text(
-              '在「设置 → AI 服务」里填好服务商、Key 与视觉模型后，再分享截图。',
+              '本地 OCR 不可用，请到「设置 → AI 服务」配置视觉模型后再试。',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -844,6 +856,43 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+/// 用分享进来的截图做淡背景，确认页不再是纯白板。
+class _PreviewBackground extends StatelessWidget {
+  const _PreviewBackground({required this.bytes});
 
+  final Uint8List bytes;
 
+  @override
+  Widget build(BuildContext context) {
+    final surface = Theme.of(context).colorScheme.surface;
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(
+            opacity: 0.12,
+            child: Image.memory(
+              bytes,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  surface.withValues(alpha: 0.72),
+                  surface.withValues(alpha: 0.94),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
