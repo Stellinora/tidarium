@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../model/time_slot.dart';
 import '../timetable_time.dart';
@@ -133,19 +133,11 @@ class _TimeSlotEditorSheetState extends State<_TimeSlotEditorSheet> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                Center(
                   child: Text(
-                    '${formatMinuteOfDay(_startMinutes)} - '
-                    '${formatMinuteOfDay(_endMinutes)}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    '时长 ${_durationMinutes()} 分钟',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -187,6 +179,11 @@ class _TimeSlotEditorSheetState extends State<_TimeSlotEditorSheet> {
     );
   }
 
+  int _durationMinutes() {
+    final value = _endMinutes - _startMinutes;
+    return value < 0 ? 0 : value;
+  }
+
   void _save() {
     final alias = _aliasController.text.trim();
     final slot = TimeSlot(
@@ -222,32 +219,52 @@ class _TimeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        alignment: Alignment.centerLeft,
-      ),
-      onPressed: () async {
-        final picked = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
-          helpText: label,
-        );
-        if (picked == null) return;
-        onChanged(picked.hour * 60 + picked.minute);
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: 2),
-          Text(
-            formatMinuteOfDay(minutes),
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+    final theme = Theme.of(context);
+    final compact = MediaQuery.sizeOf(context).width < 360;
+    final diameter = compact ? 84.0 : 96.0;
+
+    return Column(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        Material(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () async {
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(
+                  hour: minutes ~/ 60,
+                  minute: minutes % 60,
+                ),
+                helpText: label,
+              );
+              if (picked == null) return;
+              onChanged(picked.hour * 60 + picked.minute);
+            },
+            child: SizedBox(
+              width: diameter,
+              height: diameter,
+              child: Center(
+                child: Text(
+                  formatMinuteOfDay(minutes),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
